@@ -1606,7 +1606,7 @@ class Sigma:
 		g_FCEG = lambda u,xi: p.g_u(u,chi(xi),-1/N_c,alpha_s)
 		if var_int == 'nu':	
 			P_FCEL = lambda nu,xi,nu_min: p.p_tilde_u(np.exp(nu),chi(xi),N_c,alpha=alpha_s)/(1-np.exp(-1*g_FCEL(np.exp(nu_min),xi)))
-			P_FCEG = lambda nu,xi,nu_min: p.p_tilde_u(np.exp(nu),chi(xi),-1/N_c,alpha=alpha_s)/(1-np.exp(-1*g_FCEL(np.exp(nu_min),xi)))
+			P_FCEG = lambda nu,xi,nu_min: p.p_tilde_u(np.exp(nu),chi(xi),-1/N_c,alpha=alpha_s)/(1-np.exp(-1*g_FCEG(np.exp(nu_min),xi)))
 			jacobian_FCEL = lambda nu,xi: np.exp(nu)*pow(sigma_hat(xi)*np.exp(nu)+1,-1)
 			jacobian_FCEG = lambda nu,xi: np.exp(nu)*pow(sigma_hat(xi)*np.exp(nu)+1,1)
 			delta = lambda nu,xi: np.log(1+sigma_hat(xi)*np.exp(nu))
@@ -1810,8 +1810,8 @@ class Sigma:
 		as:
 			[(sigma_qqbar,err_sigma_qqbar),
 			(sigma_qbarq,err_sigma_qbarq),
-			(sigma_gq,err_sigma_g),
-			(sigma_qg,err_sigma_qg),]'''
+			(sigma_Gq,err_sigma_Gq),
+			(sigma_qG,err_sigma_qG),]'''
 		if eps<=0:
 			raise ValueError("eps <= 0, leading to integration error.")
 		else:
@@ -2371,11 +2371,11 @@ class Sigma:
 		sigma_qqbar,err_qqbar = self.dsigma_qqbar_dy(x_T,num, mu_factor= mu_factor,mu_f_factor=mu_f_factor,iso=iso,n_f=n_f,is_pp=True,switch =switch)
 		sigma_qbarq,err_qbarq = self.dsigma_qbarq_dy(x_T,num, mu_factor= mu_factor,mu_f_factor=mu_f_factor,iso=iso,n_f=n_f,is_pp=True,switch =switch)
 		sigma_Gq,err_Gq = self.dsigma_Gq_dy(x_T,num, mu_factor= mu_factor,mu_f_factor=mu_f_factor,iso=iso,n_f=n_f,is_pp=True,switch =switch)
-		sigma_qG,err_qG = self.dsigma_qG_dy(x_T,num, mu_factor= mu_factor,mu_f_factor=mu_f_factor,iso=iso,n_f=n_f,is_pp=True,switch =switch)
-		R_qqbar = pA_qqbar/sigma_qqbar
-		R_qbarq = pA_qbarq/sigma_qbarq
-		R_Gq = pA_Gq/sigma_Gq
-		R_qG = pA_qG/sigma_qG
+		sigma_qG,err_qG = self.dsigma_qG_dy(x_T,num, mu_factor= mu_factor,mu_f_factor=mu_f_factor,n_f=n_f,is_pp=True,switch =switch)
+		R_qqbar = pA_qqbar[0]/sigma_qqbar
+		R_qbarq = pA_qbarq[0]/sigma_qbarq
+		R_Gq = pA_Gq[0]/sigma_Gq
+		R_qG = pA_qG[0]/sigma_qG
 		return [R_qqbar,R_qbarq,R_Gq,R_qG]
 	
 	def Rpp_FCELG_dy(self,x_T,num,q0,mu_factor=1,mu_f_factor=1,iso='p',n_f=3,switch ='dp_t',eps = 1e-15,var_int='nu'):

@@ -29,17 +29,13 @@ pPb_cross_section = sig.Sigma(p,Pb,s,Z,A)
 d = sig.Switch
 
 ### first atempts to reproduce last results ###
-p_T = 10
-p_T2= 15
-y = -4
-y2= 0
-y3= 4
+p_T = 5
 x_T = (2.0*p_T)/rs
-x_T2 = (2.0*p_T2)/rs
+
 num = 0 																# The central set 
 
 # A plot for sigma tot and its components
-f_size = 15
+f_size = 17
 alph = 0.3
 q0 =0.07
 convention = 'd2p_t'
@@ -47,7 +43,8 @@ col_type = 'pp'
 err ='q0,mu'
 
 RpA_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), 'RpA_dir')) # the direcory to save data from this file
-a=0													
+a=0		
+b=2											
 
 def plot_usuals(n=1,s1=f_size,s2=f_size,loca = 'best'):
 	plt.legend(frameon= False, fontsize = s1,ncols=n,loc=loca )
@@ -68,7 +65,7 @@ else:
 	print(f" '{f_name}' has been created")
 
 # for the R_pA of each process
-f_name = 'R_all'+str(rs)+'GeV_'+convention+str(p_T)+'GeV.txt'
+f_name = 'R_all_'+str(rs)+'GeV_'+convention+str(p_T)+'GeV.txt'
 if os.path.exists(os.path.join(RpA_dir,f_name)):
 	print(f"The file '{f_name}' already exists. It is loaded.")
 	R_1,R_2,R_3,R_4= np.loadtxt(os.path.join(RpA_dir,f_name))
@@ -89,16 +86,16 @@ plt.plot(Y,R_1,label=r'$\ell=1$')
 plt.plot(Y,R_2,label=r'$\ell=2$')
 plt.plot(Y,R_3,label=r'$\ell=3$')
 plt.plot(Y,R_4,label=r'$\ell=4$')
-plt.plot(Y,Rpa,color='blue',linestyle= '--')
+plt.plot(Y,Rpa,color='blue',linestyle= '--',label=r'$\ell=$ Sum')
 #plt.grid()
 # plt.ylim(bottom= 0.9,top = 1.05)
-plt.ylabel(r'$R_{\ell}$',fontsize= f_size-a)
-#plt.ylim(0.8,1.1)
+plt.ylabel(r'$R_{\ell}=\sigma_{\ell}^\text{pA}/A\sigma_{\ell}^\text{pp}$',fontsize= f_size-a)
+plt.ylim(0.7,1.05)
 plt.xlabel('y',fontsize=f_size-a)
 plot_usuals(s1=f_size-a,s2=f_size-a,loca = 'best',n=2)
 ax.set_aspect(1.0/ax.get_data_ratio(), adjustable='box')
-plt.text(0.1, 0.1, r'$p_\bot =$'+str(p_T) +r' GeV', horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize=f_size-a)
-plt.text(0.1, 0.2, r'$\sqrt{s} =$'+str(rs/1000) +r' TeV', horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize=f_size-a)
+plt.text(0.05, 0.40, r'$p_\bot =$'+str(p_T) +r' GeV', horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize=f_size-a)
+plt.text(0.05, 0.50, r'$\sqrt{s} =$'+str(rs/1000) +r' TeV', horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize=f_size-a)
 plt.tight_layout()
 plt.savefig(os.path.join(plots_dir, 'R_all'+str(rs)+'GeV_'+convention+str(p_T)+'GeV.pdf'),bbox_inches="tight")
 plt.show()
