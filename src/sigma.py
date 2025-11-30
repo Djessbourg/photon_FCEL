@@ -1579,6 +1579,50 @@ class Sigma:
 		return [(Ucen_FCEL, Uplus_FCEL, Uminus_FCEL, Usym_FCEL),(Ucen_FCEG, Uplus_FCEG, Uminus_FCEG, Usym_FCEG)]
 		
 	### FCEL/FCEG implementation ###
+
+	def Integrand(self,y,x_T,num,mu_factor=1,mu_f_factor=1,iso ='p',n_f=3,switch ='dp_t',var_int='nu',q0=0.07):
+		'''Gives back the integrand of each component as function of nu,xi,nu_min,
+		with:
+		- y the rapidity
+		- x_T = 2*p_T/√s ,p_T the transverse momentum
+		- num the member of the pdf set
+		- mu_factor that describes mu = p_T*mu_factor (same for mu_f_factor)
+		- iso the isospin variable (='p' by default)
+		- n_f the number of flavours (=3 by default)
+		- is_pp a booleen (=False by default) to tell the collision type
+		- switch the convention of p_T integration (= 'dp_t' by default)
+		- q0 the transport coefficient
+		as:
+			[I_qqbar,I_qbarq,I_gq,I_qg]'''
+		alpha_s = 0.5
+		rs = self.rs
+		p_t = rs*x_T/2.
+		A = self.A
+		m = 0 		
+		proba_FCEL = p.proba(A,1.,rs,p_t,y,alpha_s,N_c,m,q0)
+		sigma_hat = lambda xi: proba_FCEL.sigma_hat(xi)
+		chi = lambda xi:proba_FCEL.Chi(xi)
+		g_FCEL = lambda u,xi: p.g_u(u,chi(xi),N_c,alpha_s)	
+		g_FCEG = lambda u,xi: p.g_u(u,chi(xi),-1/N_c,alpha_s)
+		if var_int == 'nu':	
+			P_FCEL = lambda nu,xi,nu_min: p.p_tilde_u(np.exp(nu),chi(xi),N_c,alpha=alpha_s)/(1-np.exp(-1*g_FCEL(np.exp(nu_min),xi)))
+			P_FCEG = lambda nu,xi,nu_min: p.p_tilde_u(np.exp(nu),chi(xi),-1/N_c,alpha=alpha_s)/(1-np.exp(-1*g_FCEL(np.exp(nu_min),xi)))
+			jacobian_FCEL = lambda nu,xi: np.exp(nu)*pow(sigma_hat(xi)*np.exp(nu)+1,-1)
+			jacobian_FCEG = lambda nu,xi: np.exp(nu)*pow(sigma_hat(xi)*np.exp(nu)+1,1)
+			delta = lambda nu,xi: np.log(1+sigma_hat(xi)*np.exp(nu))
+			dsigma_qG = lambda nu,xi: self.qG(y-delta(nu,xi),x_T,xi,num,mu_factor=mu_factor,mu_f_factor=mu_f_factor,n_f=n_f,is_pp = True,switch =switch)
+			dsigma_Gq =lambda nu,xi: self.Gq(y+delta(nu,xi),x_T,xi,num,mu_factor=mu_factor,mu_f_factor=mu_f_factor,iso =iso,n_f=n_f,is_pp = True,switch =switch)
+			dsigma_qqbar =lambda nu,xi: self.qqbar(y+delta(nu,xi),x_T,xi,num,mu_factor=mu_factor,mu_f_factor=mu_f_factor,iso =iso,n_f=n_f,is_pp = True,switch =switch)
+			dsigma_qbarq =lambda nu,xi: self.qbarq(y+delta(nu,xi),x_T,xi,num,mu_factor=mu_factor,mu_f_factor=mu_f_factor,iso =iso,n_f=n_f,is_pp = True,switch =switch)		# if FCEL: y+delta ; if FCEG: y-delta
+			I_qG = lambda nu,xi,nu_min:jacobian_FCEG(nu,xi)*P_FCEG(nu,xi,nu_min)*dsigma_qG(nu,xi)
+			I_Gq = lambda nu,xi,nu_min:jacobian_FCEL(nu,xi)*P_FCEL(nu,xi,nu_min)*dsigma_Gq(nu,xi)
+			I_qqbar = lambda nu,xi,nu_min:jacobian_FCEL(nu,xi)*P_FCEL(nu,xi,nu_min)*dsigma_qqbar(nu,xi)
+			I_qbarq = lambda nu,xi,nu_min:jacobian_FCEL(nu,xi)*P_FCEL(nu,xi,nu_min)*dsigma_qbarq(nu,xi)
+			return [I_qqbar,I_qbarq,I_Gq,I_qG]
+		elif var_int == 'delta':												# delta = ln(1+x)
+			raise ValueError('Not implemented yet')
+		elif var_int == 'nu2':													# u = exp(-nu)
+			raise ValueError('Not implemented yet')
 	
 	def FCEL_integrand(self,y,x_T,num,mu_factor=1,mu_f_factor=1,iso ='p',n_f=3,switch ='dp_t',var_int='nu',q0=0.07):
 		'''return the FCEL integrand as a function (lambda class) of nu and xi,
@@ -1750,6 +1794,75 @@ class Sigma:
 				err_sigma_FCEG.append(conv_fact*Int_FCEG[1])
 			return [(np.array(sigma_FCEL),np.array(err_sigma_FCEL)),(np.array(sigma_FCEG),np.array(err_sigma_FCEG))]
 	
+	def All_integration_dy(self,x_T,num,mu_factor=1,mu_f_factor=1,iso='p',n_f=3,switch ='dp_t',eps = 1e-15,var_int='nu',q0 = 0.07):
+		'''Return the integrated qqbar qbarq gq and qg componnents rapidity dependent,
+		with:
+		- x_T = 2*p_T/√s ,p_T the transverse momentum
+		- num the member of the pdf set
+		- mu_factor that describes mu = p_T*mu_factor (same for mu_f_factor)
+		- iso the isospin variable (='p' by default)
+		- n_f the number of flavours (=3 by default)
+		- is_pp a booleen (=False by default) to tell the collision type
+		- switch the convention of p_T integration (= 'dp_t' by default)
+		- eps the minimun delta_y can value
+		- var_int (str) the integration variable (="nu" by default)
+		- q0 the transport coefficient
+		as:
+			[(sigma_qqbar,err_sigma_qqbar),
+			(sigma_qbarq,err_sigma_qbarq),
+			(sigma_gq,err_sigma_g),
+			(sigma_qg,err_sigma_qg),]'''
+		if eps<=0:
+			raise ValueError("eps <= 0, leading to integration error.")
+		else:
+			Y = Y_list(x_T)
+			A = self.A
+			rs = self.rs
+			p_T = rs*x_T/2.
+			alpha_s = 0.5														# don't use the pdf one, bc the energy scale here is sqrt(q_hat*L)
+			Fc_FCEG = -1./N_c
+			sigma_qqbar, sigma_qbarq, sigma_Gq, sigma_qG = [],[],[],[]
+			err_sigma_qqbar, err_sigma_qbarq, err_sigma_Gq, err_sigma_qG = [],[],[],[]
+			for i,y in enumerate(Y):
+				print('y = '+str(y)+'| '+str(i+1)+'/'+str(N_y))
+				prob_FCEG = p.proba(A,1.,rs,p_T,y,alpha_s,Fc_FCEG,0,q0)
+				sigma_hat = lambda xi: prob_FCEG.sigma_hat(xi)
+				k = 2./x_T
+				delta_y_FCEL_max = lambda xi: min(np.log(k*xi)-y,np.log(2))
+				delta_y_FCEG_max = lambda xi: min(y+np.log((1-xi)*k),np.log(2))
+				delta_y_min = eps
+				if var_int == 'nu':
+					max_FCEL = lambda xi: np.log((np.exp(delta_y_FCEL_max(xi))-1.)/sigma_hat(xi))
+					max_FCEG = lambda xi: np.log((np.exp(delta_y_FCEG_max(xi))-1.)/sigma_hat(xi))
+					if delta_y_min > 1e-15:
+						min_FCEL = lambda xi: np.log((np.exp(delta_y_min)-1)/sigma_hat(xi))
+						min_FCEG = lambda xi: np.log((np.exp(delta_y_min)-1)/sigma_hat(xi))
+					elif delta_y_min > 0:
+						min_FCEL = lambda xi: np.log(delta_y_min/sigma_hat(xi))
+						min_FCEG = lambda xi: np.log(delta_y_min/sigma_hat(xi))
+				elif var_int == 'nu2':
+					min_FCEL = lambda xi: -1*np.log((np.exp(delta_y_FCEL_max(xi))-1.)/sigma_hat(xi))
+					min_FCEG = lambda xi: -1*np.log((np.exp(delta_y_FCEG_max(xi))-1.)/sigma_hat(xi))
+					if delta_y_min > 1e-15:
+						max_FCEL = lambda xi: -1*np.log((np.exp(delta_y_min)-1)/sigma_hat(xi))
+						max_FCEG = lambda xi: -1*np.log((np.exp(delta_y_min)-1)/sigma_hat(xi))
+					elif delta_y_min > 0:
+						max_FCEL = lambda xi: -1*np.log(delta_y_min/sigma_hat(xi))
+						max_FCEG = lambda xi: -1*np.log(delta_y_min/sigma_hat(xi))
+				elif var_int == 'delta':
+					max_FCEL = delta_y_FCEL_max
+					max_FCEG = delta_y_FCEG_max
+					min_FCEL = lambda xi:delta_y_min
+					min_FCEG = lambda xi:delta_y_min
+				I_qqbar, I_qbarq, I_Gq, I_qG = self.Integrand(y,x_T,num,mu_factor,mu_f_factor,iso,n_f,switch,var_int=var_int,q0=q0)
+				Int_qqbar = integrate.quad(lambda xi: integrate.quad(lambda nu: I_qqbar(nu,xi,min_FCEL(xi)),min_FCEL(xi),max_FCEL(xi))[0],Xi_min(y,x_T),Xi_max(y,x_T))
+				Int_qbarq = integrate.quad(lambda xi: integrate.quad(lambda nu: I_qbarq(nu,xi,min_FCEL(xi)),min_FCEL(xi),max_FCEL(xi))[0],Xi_min(y,x_T),Xi_max(y,x_T))
+				Int_Gq = integrate.quad(lambda xi: integrate.quad(lambda nu: I_Gq(nu,xi,min_FCEL(xi)),min_FCEL(xi),max_FCEL(xi))[0],Xi_min(y,x_T),Xi_max(y,x_T))
+				Int_qG = integrate.quad(lambda xi: integrate.quad(lambda nu: I_qG(nu,xi,min_FCEG(xi)),min_FCEG(xi),max_FCEG(xi))[0],Xi_min(y,x_T),Xi_max(y,x_T))
+				sigma_qqbar.append(conv_fact*Int_qqbar[0]);sigma_qbarq.append(conv_fact*Int_qbarq[0]);sigma_Gq.append(conv_fact*Int_Gq[0]);sigma_qG.append(conv_fact*Int_qG[0])
+				err_sigma_qqbar.append(conv_fact*Int_qqbar[1]);err_sigma_qbarq.append(conv_fact*Int_qbarq[1]);err_sigma_Gq.append(conv_fact*Int_Gq[1]);err_sigma_qG.append(conv_fact*Int_qG[1])
+			return [(np.array(sigma_qqbar),np.array(err_sigma_qqbar)),(np.array(sigma_qbarq),np.array(err_sigma_qbarq)),(np.array(sigma_Gq),np.array(err_sigma_Gq)),(np.array(sigma_qG),np.array(err_sigma_qG))]
+
 	def FCEL_G_integration_dpt(self,y,num,mu_factor=1,mu_f_factor=1,iso='p',n_f=3,switch ='dp_t',eps = 1e-15,var_int='nu',q0 = 0.07):
 		'''Return the integrated FCEL and FCEG componnents transverse momentum
 		dependent, with:
@@ -1883,6 +1996,77 @@ class Sigma:
 			sigma_FCEG = conv_fact*Int_FCEG[0]
 			err_sigma_FCEG = conv_fact*Int_FCEG[1]
 		return [(sigma_FCEL,err_sigma_FCEL),(sigma_FCEG,err_sigma_FCEG)]
+	
+	def All_integration_dydpt(self,y,x_T,num,mu_factor=1,mu_f_factor=1,iso='p',n_f=3,switch ='dp_t',eps = 1e-15,var_int='nu',q0 = 0.07):
+		'''Return the integrated qqbar qbarq gq and qg componnents for (y,p_T) of the phase space,
+		with:
+		- y the rapidity
+		- x_T = 2*p_T/√s ,p_T the transverse momentum
+		- num the member of the pdf set
+		- mu_factor that describes mu = p_T*mu_factor (same for mu_f_factor)
+		- iso the isospin variable (='p' by default)
+		- n_f the number of flavours (=3 by default)
+		- is_pp a booleen (=False by default) to tell the collision type
+		- switch the convention of p_T integration (= 'dp_t' by default)
+		- eps the minimun delta_y can value
+		- var_int (str) the integration variable (="nu" by default)
+		- q0 the transport coefficient
+		as:
+			[(sigma_qqbar,err_sigma_qqbar),
+			(sigma_qbarq,err_sigma_qbarq),
+			(sigma_gq,err_sigma_g),
+			(sigma_qg,err_sigma_qg),]'''
+		if eps<=0:
+			raise ValueError("eps <= 0, leading to integration error.")
+		else:
+			A = self.A
+			rs = self.rs
+			p_T = rs*x_T/2.
+			alpha_s = 0.5														# don't use the pdf one, bc the energy scale here is sqrt(q_hat*L)
+			Fc_FCEG = -1./N_c
+			prob_FCEG = p.proba(A,1.,rs,p_T,y,alpha_s,Fc_FCEG,0,q0)
+			sigma_hat = lambda xi: prob_FCEG.sigma_hat(xi)
+			k = 2./x_T
+			delta_y_FCEL_max = lambda xi: min(np.log(k*xi)-y,np.log(2))
+			delta_y_FCEG_max = lambda xi: min(y+np.log((1-xi)*k),np.log(2))
+			delta_y_min = eps
+			if var_int == 'nu':
+				max_FCEL = lambda xi: np.log((np.exp(delta_y_FCEL_max(xi))-1.)/sigma_hat(xi))
+				max_FCEG = lambda xi: np.log((np.exp(delta_y_FCEG_max(xi))-1.)/sigma_hat(xi))
+				if delta_y_min > 1e-15:
+					min_FCEL = lambda xi: np.log((np.exp(delta_y_min)-1)/sigma_hat(xi))
+					min_FCEG = lambda xi: np.log((np.exp(delta_y_min)-1)/sigma_hat(xi))
+				elif delta_y_min > 0:
+					min_FCEL = lambda xi: np.log(delta_y_min/sigma_hat(xi))
+					min_FCEG = lambda xi: np.log(delta_y_min/sigma_hat(xi))
+			elif var_int == 'nu2':
+				min_FCEL = lambda xi: -1*np.log((np.exp(delta_y_FCEL_max(xi))-1.)/sigma_hat(xi))
+				min_FCEG = lambda xi: -1*np.log((np.exp(delta_y_FCEG_max(xi))-1.)/sigma_hat(xi))
+				if delta_y_min > 1e-15:
+					max_FCEL = lambda xi: -1*np.log((np.exp(delta_y_min)-1)/sigma_hat(xi))
+					max_FCEG = lambda xi: -1*np.log((np.exp(delta_y_min)-1)/sigma_hat(xi))
+				elif delta_y_min > 0:
+					max_FCEL = lambda xi: -1*np.log(delta_y_min/sigma_hat(xi))
+					max_FCEG = lambda xi: -1*np.log(delta_y_min/sigma_hat(xi))
+			elif var_int == 'delta':
+				max_FCEL = delta_y_FCEL_max
+				max_FCEG = delta_y_FCEG_max
+				min_FCEL = lambda xi:delta_y_min
+				min_FCEG = lambda xi:delta_y_min
+			I_qqbar, I_qbarq, I_Gq, I_qG = self.Integrand(y,x_T,num,mu_factor,mu_f_factor,iso,n_f,switch,var_int=var_int,q0=q0)
+			Int_qqbar = integrate.quad(lambda xi: integrate.quad(lambda nu: I_qqbar(nu,xi,min_FCEL(xi)),min_FCEL(xi),max_FCEL(xi))[0],Xi_min(y,x_T),Xi_max(y,x_T))
+			Int_qbarq = integrate.quad(lambda xi: integrate.quad(lambda nu: I_qbarq(nu,xi,min_FCEL(xi)),min_FCEL(xi),max_FCEL(xi))[0],Xi_min(y,x_T),Xi_max(y,x_T))
+			Int_Gq = integrate.quad(lambda xi: integrate.quad(lambda nu: I_Gq(nu,xi,min_FCEL(xi)),min_FCEL(xi),max_FCEL(xi))[0],Xi_min(y,x_T),Xi_max(y,x_T))
+			Int_qG = integrate.quad(lambda xi: integrate.quad(lambda nu: I_qG(nu,xi,min_FCEG(xi)),min_FCEG(xi),max_FCEG(xi))[0],Xi_min(y,x_T),Xi_max(y,x_T))
+			sigma_qqbar = conv_fact*Int_qqbar[0]
+			sigma_qbarq = conv_fact*Int_qbarq[0]
+			sigma_Gq = conv_fact*Int_Gq[0]
+			sigma_qG = conv_fact*Int_qG[0]
+			err_sigma_qqbar = conv_fact*Int_qqbar[1]
+			err_sigma_qbarq = conv_fact*Int_qbarq[1]
+			err_sigma_Gq = conv_fact*Int_Gq[1]
+			err_sigma_qG = conv_fact*Int_qG[1]
+		return [(sigma_qqbar,err_sigma_qqbar),(sigma_qbarq,err_sigma_qbarq),(sigma_Gq,err_sigma_Gq),(sigma_qG,err_sigma_qG)]
 	
 	def Uncertainties_pA_dy(self,x_T,mu_factor=1,mu_f_factor=1,iso='p',n_f=3,switch ='dp_t',eps = 1e-15,var_int='nu',q0_list=[0.07,0.05,0.09],var_err='q0,mu,pdf'):
 		'''Return the uncertinites on the final sigma_pA (i.e taking in count FCEL
@@ -2168,6 +2352,31 @@ class Sigma:
 		Uplus = np.sqrt(Uplus_q**2+Uplus_mu**2+Uplus_pdf**2)
 		Uminus = np.sqrt(Uminus_q**2+Uminus_mu**2+Uminus_pdf**2)
 		return [Ucen,[Uplus,Uminus],[Uplus_q,Uminus_q,Uplus_mu,Uminus_mu,Uplus_pdf,Uminus_pdf]]
+	
+	def R_pp_All_dy(self,x_T,num,q0,mu_factor=1,mu_f_factor=1,iso='p',n_f=3,switch ='dp_t',eps = 1e-15,var_int='nu'):
+		'''Return the ratios of the shifted sigma_l (l = 1,2,3,4 see proceedings) 
+		over sigma_l with:
+		- x_T = 2*p_T/√s ,p_T the transverse momentum
+		- num the member of the pdf set
+		- q0 the transport coefficient
+		- mu_factor that describes mu = p_T*mu_factor (same for mu_f_factor)
+		- iso the isospin variable (='p' by default)
+		- n_f the number of flavours (=3 by default)
+		- switch the convention of p_T integration (= 'dp_t' by default)
+		- eps the minimun delta_y can value
+		- var_int (str) the integration variable (="nu" by default)
+		as :
+			[R_qqbar,R_qbarq,R_Gq,R_qG]'''
+		pA_qqbar, pA_qbarq, pA_Gq, pA_qG = self.All_integration_dy(x_T,num,mu_factor= mu_factor,mu_f_factor=mu_f_factor,iso=iso,n_f=n_f,switch =switch,eps = eps,var_int=var_int,q0=q0)
+		sigma_qqbar,err_qqbar = self.dsigma_qqbar_dy(x_T,num, mu_factor= mu_factor,mu_f_factor=mu_f_factor,iso=iso,n_f=n_f,is_pp=True,switch =switch)
+		sigma_qbarq,err_qbarq = self.dsigma_qbarq_dy(x_T,num, mu_factor= mu_factor,mu_f_factor=mu_f_factor,iso=iso,n_f=n_f,is_pp=True,switch =switch)
+		sigma_Gq,err_Gq = self.dsigma_Gq_dy(x_T,num, mu_factor= mu_factor,mu_f_factor=mu_f_factor,iso=iso,n_f=n_f,is_pp=True,switch =switch)
+		sigma_qG,err_qG = self.dsigma_qG_dy(x_T,num, mu_factor= mu_factor,mu_f_factor=mu_f_factor,iso=iso,n_f=n_f,is_pp=True,switch =switch)
+		R_qqbar = pA_qqbar/sigma_qqbar
+		R_qbarq = pA_qbarq/sigma_qbarq
+		R_Gq = pA_Gq/sigma_Gq
+		R_qG = pA_qG/sigma_qG
+		return [R_qqbar,R_qbarq,R_Gq,R_qG]
 	
 	def Rpp_FCELG_dy(self,x_T,num,q0,mu_factor=1,mu_f_factor=1,iso='p',n_f=3,switch ='dp_t',eps = 1e-15,var_int='nu'):
 		'''Return the ratio of the shifted sigma_pp (or pn if iso = 'n') 
