@@ -45,7 +45,7 @@ m = m_photon
 
 # plot variables
 alph = 0.3
-f_size = 15
+f_size = 17
 tot_color, dir_color , frag_color = 'blue' , 'green' , 'orange'
 ylims = {
 	3:(0.2,1.10),
@@ -393,8 +393,8 @@ def plot_splines(Y,pt,L,C,n=2,All = True):
 	'''Return the plots of cross section splines in a Y array giving pt 
 	and L the list of the p_num wanted. If all == True, then all the cross sections 
 	are ploted on the same figure with n colluns for legend'''
-	a=2
-	b = 3
+	a=0
+	b=0
 	if All:
 		fig, ax = plt.subplots(constrained_layout=True)
 		ax.xaxis.set_minor_locator(MultipleLocator(1))
@@ -436,8 +436,8 @@ def plot_splines(Y,pt,L,C,n=2,All = True):
 			plt.show()
 
 def plot_f_alpha(Y,pt,L,C,n=2):
-	a=2
-	b = 3
+	a=0
+	b=0
 	fig, ax = plt.subplots(constrained_layout=True)
 	ax.xaxis.set_minor_locator(MultipleLocator(1))
 	ax.yaxis.set_minor_locator(MultipleLocator(0.1))
@@ -469,8 +469,8 @@ def plot_f_alpha(Y,pt,L,C,n=2):
 
 def pt_plots(Y,y_list,z,q,xi):
 	'''Y a vector of rapidities and y_list some rapidities inside it'''
-	a=2
-	b=2
+	a=0
+	b=0
 	Yr = np.round(Y,1)															# adapt the round parameters folowing your Y vector and your y_list
 	for y in y_list:
 		if not(y in Yr):
@@ -500,8 +500,10 @@ def pt_plots(Y,y_list,z,q,xi):
 			plt.fill_between(p_T_dispo, R_frag_minus, R_frag_plus, color=frag_color, alpha=alph)
 			plt.ylim(0.8,1.1)
 			plot_usuals(s1=f_size-b,s2=f_size-a,n=2,loca='lower left')
-			plt.xlabel(r'$p_\bot$',fontsize=f_size-a)
-			plt.text(0.8, 0.85,r'$y =$ '+str(y),horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b)
+			plt.xlabel(r'$p_\bot$ (GeV)',fontsize=f_size-a)
+			plt.ylabel(r'$R_{pA}$',fontsize=f_size-a)
+			plt.text(0.75, 0.9,r'$y =$ '+str(int(np.round(y))),horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b)
+			plt.text(0.75, 0.8,r'$\sqrt{s} =$ '+str(rs/1000)+' TeV',horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b)
 			n_fig = 'tot_dir_frag_Npt'+str(len(p_T_dispo))+'_y'+str(y)+'_rs'+str(rs)+'_A'+str(A)+'_Z'+str(Z)+'.pdf'
 			ax.set_aspect(1.0/ax.get_data_ratio(), adjustable='box')
 			plt.savefig(os.path.join(plots_dir,n_fig),bbox_inches="tight")# bbox_inches="tight"
@@ -515,8 +517,9 @@ def pt_plots(Y,y_list,z,q,xi):
 			plt.fill_between(p_T_dispo, R_tot_minus, R_tot_plus, color=tot_color, alpha=alph)
 			plt.ylim(0.8,1.1)
 			plot_usuals(s1=f_size-b,s2=f_size-a,loca='lower left')
-			plt.xlabel(r'$p_\bot$',fontsize=f_size-a)
-			plt.text(0.8, 0.85,r'$y =$'+str(y),horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b)
+			plt.xlabel(r'$p_\bot$ (GeV)',fontsize=f_size-a)
+			plt.ylabel(r'$R_{pA}$',fontsize=f_size-a)
+			plt.text(0.8, 0.85,r'$y =$'+str(int(np.round(y))),horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b)
 			n_fig = 'tot_dir_Npt'+str(len(p_T_dispo))+'_y'+str(y)+'_rs'+str(rs)+'_A'+str(A)+'_Z'+str(Z)+'.pdf'
 			ax.set_aspect(1.0/ax.get_data_ratio(), adjustable='box')
 			plt.savefig(os.path.join(plots_dir,n_fig),bbox_inches="tight")# bbox_inches="tight"
@@ -558,8 +561,8 @@ def plot_mains(Y,pt,z,q,xi):
 		plt.show()
  
 def all_plots(Y,pt,z,q,xi):
-	a=2
-	b=2
+	a=0
+	b=0
 	Ny = len(Y)
 	r = RpA_tot_uncertainties(Y,pt, z, q, xi)
 	r_tot , r_tot_minus, r_tot_plus = r[1:4]
@@ -578,7 +581,9 @@ def all_plots(Y,pt,z,q,xi):
 	plot_usuals(n=2,s1=f_size-b,s2=f_size-a,loca = 'lower left')
 	plt.ylim(0.8,1.1)
 	plt.xlabel('y',fontsize=f_size-a)
-	plt.text(0.8, 0.85,r'$p_\bot =$ '+str(pt)+' GeV',horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b) #bbox=dict(boxstyle="round,pad=0.3", facecolor='gray', alpha=alph)
+	plt.ylabel(r'$R_{pA}$', fontsize=f_size-a)
+	plt.text(0.75, 0.9,r'$p_\bot =$ '+str(pt)+' GeV',horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b) #bbox=dict(boxstyle="round,pad=0.3", facecolor='gray', alpha=alph)
+	plt.text(0.75, 0.8,r'$\sqrt{s} =$ '+str(rs/1000)+' TeV',horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b)
 	ax.set_aspect(1.0/ax.get_data_ratio(), adjustable='box')
 	n_fig = 'tot_dir_frag_Ny'+str(Ny)+'_pt'+str(pt)+'_rs'+str(rs)+'_A'+str(A)+'_Z'+str(Z)+'.pdf'
 	plt.savefig(os.path.join(plots_dir,n_fig),bbox_inches="tight")
@@ -593,7 +598,9 @@ def all_plots(Y,pt,z,q,xi):
 	plot_usuals(s1=f_size-b,s2=f_size-a,loca = 'lower left')
 	plt.ylim(0.8,1.1)
 	plt.xlabel('y',fontsize=f_size-a)
-	plt.text(0.8, 0.85,r'$p_\bot =$ '+str(pt)+' GeV',horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b)
+	plt.ylabel(r'$R_{pA}$',fontsize=f_size-a)
+	plt.text(0.75, 0.9,r'$p_\bot =$ '+str(pt)+' GeV',horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b) #bbox=dict(boxstyle="round,pad=0.3", facecolor='gray', alpha=alph)
+	plt.text(0.75, 0.8,r'$\sqrt{s} =$ '+str(rs/1000)+' TeV',horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b)
 	ax.set_aspect(1.0/ax.get_data_ratio(), adjustable='box')
 	n_fig = 'tot_vs_dir_Ny'+str(Ny)+'_pt'+str(pt)+'_rs'+str(rs)+'_A'+str(A)+'_Z'+str(Z)+'.pdf'
 	plt.savefig(os.path.join(plots_dir,n_fig),bbox_inches="tight")
@@ -637,10 +644,11 @@ def all_plots(Y,pt,z,q,xi):
 # 		plt.savefig(os.path.join(plots_dir,n_fig),bbox_inches="tight")
 # 		plt.show()
 
-pt = p_T_dispo[0]
+pt = p_T_dispo[1]
 x_T = 2*pt/rs
 Y_list = sig.Y_list(x_T)
 pt_plots(Y_list, fixed_y, z, q, xi)
+all_plots(Y_list,pt, z, q, xi)
 for p_t in p_T_dispo:
 	x_T = 2*p_t/rs
 	Y_list = sig.Y_list(x_T)
