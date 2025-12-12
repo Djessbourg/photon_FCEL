@@ -6,9 +6,9 @@
 # It shows for different arguments the nuclear ratio R_pA, with the possibility 
 # to add uncertainties on \mu, \mu_f, \hat{q} and pdf uncertainites.
 # Credits : BOURGEAIS Djessy; ARLEO Francois.
-# Subatech (IN2P3)
+# Subatech (IN2P3,CNRS)
 # Nantes, France
-# Last modified: 4/11/2025
+# Last modified: 12/12/2025
 # =============================================================================
 
 import sys
@@ -63,7 +63,7 @@ conv_fact = pow(0.197,2)*pow(10,10)												# to convert Gev^-2 into barns
 pi = np.pi
 
 # Integration parameters
-epsilon = pow(10,-15)															# to avoid phase space borders 
+epsilon = pow(10,-3)															# to avoid phase space borders 
 N_pt = 41
 N_Xi = 1000
 N_y= 41
@@ -73,10 +73,22 @@ N_limit = 1000																	# number of subdivisions for quad integration
 Xi_min = lambda y,x_T: x_T*np.exp(y)/2.
 Xi_max = lambda y,x_T: 1-(x_T*np.exp(-y)/2.)
 
+# for virtual photons, p_T -> M_T, so M_T/sqrt(s) = (x_T/2)*sqrt(b+1)
+Xi_min_M = lambda y,x_T,b:x_T*np.sqrt(b+1)*np.exp(y)/2.
+Xi_max_M = lambda y,x_T,b: (1-(x_T*np.sqrt(b+1)*np.exp(-y)/2.))/(1+(b/(b+1))*(x_T*np.sqrt(b+1)*np.exp(-y)/2.))
+
 def Y_list(x_T):
 	'''Return a numpy linespace array of N_y rapidities given x_T'''
-	y_min = max(-np.log(2./x_T)+epsilon,-6)
-	y_max = min(np.log(2./x_T)-epsilon,6)
+	y_min = max(-np.log(2./x_T),-6)
+	y_max = min(np.log(2./x_T),6)
+	Y = np.linspace(y_min,y_max,N_y)
+	return Y
+
+def Y_list_M(x_T,b):
+	'''Return a numpy linespace array of N_y rapidities given x_T'''
+	eps_M = np.log(b+1)/2.
+	y_min = max(-np.log(2./x_T)+eps_M + epsilon,-6)
+	y_max = min(np.log(2./x_T)-eps_M - epsilon,6)
 	Y = np.linspace(y_min,y_max,N_y)
 	return Y
 
@@ -350,6 +362,43 @@ class Sigma:
 			F = self.F2_p(x_proj,mu_f2,num,iso='p',n_f=n_f)
 			G = self.Gluon_p(x_targ,mu_f2,num)
 			return F*G*(C_F/(N_c**2 -1))*Xi_factor*prefactor
+	
+	def qG_M(self,y,x_T,Xi,M,num,mu_factor=1,mu_f_factor=1,n_f=3,is_pp = False,switch = 'dp_t'): 				# not affected by isospin because G_p  = G_n 
+		'''Return the q(p)G(A)-> gamma^\star q integrand with:
+		- y, the rapidity
+		- x_T = 2*p_T/√s ,p_T the transverse momentum
+		- Xi the partonic fraction p+_3/p+_1 = -\hat{u}/\hat{s}
+		- M the mass of the virtual photon
+		- num the member of the pdf set
+		- mu_factor that describes mu = p_T*mu_factor (same for mu_f_factor)
+		- n_f the number of flavours (=3 by default)
+		- is_pp a booleen (=False by default) to tell the collision type
+		- switch the convention of p_T integration (= 'dp_t' by default)'''
+		s = self.s
+		rs = self.rs 
+		p_t = x_T*rs/2.
+		M_t = np.sqrt(M**2+p_t**2)
+		b = (M/p_t)**2 #if M = 0, b = 0 and then you get the same formula as for real photons
+		x_proj = (x_T*np.sqrt(b+1)*np.exp(y)/2)/Xi
+		x_targ = (x_T*np.sqrt(b+1)*np.exp(-1*y)/2)*(1+b*(1-Xi))/((1-Xi)*(b+1))
+		Xi_factor = 1-Xi+(1./(1-Xi))-2*b*(Xi**2)/(1+b*(1-Xi))**2
+		mu2 = (M_t*mu_factor)**2
+		mu_f2 = (M_t*mu_f_factor)**2
+		alpha_s = self.alpha_s_p(num,mu2)
+		if switch == 'dp_t':
+			prefactor = 4*pi*alpha*alpha_s/(pow(s,1.5)*x_T)
+		elif switch == 'd2p_t':
+			prefactor =  4*alpha*alpha_s/((s*x_T)**2)
+		elif switch == 'dp_t2':
+			prefactor = 4*pi*alpha*alpha_s/((s*x_T)**2)
+		if not is_pp:
+			F = self.F2_p(x_proj,mu_f2,num,iso ='p',n_f=n_f)
+			G = self.Gluon_A(x_targ,mu_f2,num)
+			return F*G*Xi_factor*prefactor/N_c
+		elif is_pp:
+			F = self.F2_p(x_proj,mu_f2,num,iso='p',n_f=n_f)
+			G = self.Gluon_p(x_targ,mu_f2,num)
+			return F*G*Xi_factor*prefactor/N_c
 		
 	def Gq(self,y,x_T,Xi,num,mu_factor=1,mu_f_factor=1,iso ='p',n_f=3,is_pp = False,switch ='dp_t'):  
 		'''Return the G(p)q(A)-> gamma q integrand with:
@@ -370,6 +419,7 @@ class Sigma:
 		mu2 = (p_t*mu_factor)**2
 		mu_f2 = (p_t*mu_f_factor)**2
 		alpha_s = self.alpha_s_p(num,mu2)
+		Xi_factor = Xi+(1./Xi)
 		if switch == 'dp_t':
 			prefactor = 8*pi*alpha*alpha_s/(pow(s,1.5)*x_T)
 		elif switch == 'd2p_t':
@@ -379,12 +429,48 @@ class Sigma:
 		if not is_pp:
 			F = self.F2_A(x_targ,mu_f2,num,n_f)
 			G = self.Gluon_p(x_proj,mu_f2,num)
-			Xi_factor = Xi+(1./Xi)
 		elif is_pp:
 			F = self.F2_p(x_targ,mu_f2,num,iso,n_f) 					# here, the target could be a neutron, so we put an iso parameter
 			G = self.Gluon_p(x_proj,mu_f2,num)
-			Xi_factor = Xi+(1./Xi)
 		return F*G*(C_F/(N_c**2 -1))*Xi_factor*prefactor
+	
+	def Gq_M(self,y,x_T,Xi,M,num,mu_factor=1,mu_f_factor=1,iso ='p',n_f=3,is_pp = False,switch ='dp_t'):  
+		'''Return the G(p)q(A)-> gamma^\star q integrand with:
+		- y, the rapidity
+		- x_T = 2*p_T/√s ,p_T the transverse momentum
+		- Xi the partonic fraction p+_3/p+_1 = -\hat{u}/\hat{s}
+		- M the mass of the virtual photon
+		- num the member of the pdf set
+		- mu_factor that describes mu = p_T*mu_factor (same for mu_f_factor)
+		- iso the isospin variable (='p' by default)
+		- n_f the number of flavours (=3 by default)
+		- is_pp a booleen (=False by default) to tell the collision type
+		- switch the convention of p_T integration (= 'dp_t' by default)'''
+		s = self.s
+		rs = self.rs 
+		p_t = x_T*rs/2.
+		M_t = np.sqrt(M**2+p_t**2)
+		b = (M/p_t)**2 #if M = 0, b = 0 and then you get the same formula as for real photons
+		x_proj = (x_T*np.sqrt(b+1)*np.exp(y)/2)/Xi
+		x_targ = (x_T*np.sqrt(b+1)*np.exp(-1*y)/2)*(1+b*(1-Xi))/((1-Xi)*(b+1))
+		mu2 = (M_t*mu_factor)**2
+		mu_f2 = (M_t*mu_f_factor)**2
+		Xi_factor = Xi + 1/Xi + b*(1-Xi)*(1/Xi-Xi/(1+b*(1-Xi))-2*(1-Xi))
+		alpha_s = self.alpha_s_p(num,mu2)
+		if switch == 'dp_t':
+			prefactor = 4*pi*alpha*alpha_s/(pow(s,1.5)*x_T)
+		elif switch == 'd2p_t':
+			prefactor =  4*alpha*alpha_s/((s*x_T)**2)
+		elif switch == 'dp_t2':
+			prefactor = 4*pi*alpha*alpha_s/((s*x_T)**2)
+		if not is_pp:
+			F = self.F2_p(x_proj,mu_f2,num,iso ='p',n_f=n_f)
+			G = self.Gluon_A(x_targ,mu_f2,num)
+			return F*G*Xi_factor*prefactor/N_c
+		elif is_pp:
+			F = self.F2_p(x_proj,mu_f2,num,iso='p',n_f=n_f)
+			G = self.Gluon_p(x_targ,mu_f2,num)
+			return F*G*Xi_factor*prefactor/N_c
 		
 	def qqbar(self,y,x_T,Xi,num,mu_factor=1,mu_f_factor=1,iso='p',n_f=3,is_pp = False,switch = 'dp_t'):
 		'''Return the q(p)qbar(A)-> gamma G integrand with:
@@ -415,6 +501,38 @@ class Sigma:
 		F_qqbar = self.F_ij(x_proj,x_targ,mu_f2,num,direction='qqbar',iso=iso,n_f=n_f,is_pp=is_pp)
 		return F_qqbar*Xi_factor*(C_F/N_c)*prefactor
 	
+	def qqbar_M(self,y,x_T,Xi,M,num,mu_factor=1,mu_f_factor=1,iso='p',n_f=3,is_pp = False,switch = 'dp_t'):
+		'''Return the q(p)qbar(A)-> gamma G integrand with:
+		- y, the rapidity
+		- x_T = 2*p_T/√s ,p_T the transverse momentum
+		- Xi the partonic fraction p+_3/p+_1 = -\hat{u}/\hat{s}
+		- M the mass of the virtual photon
+		- num the member of the pdf set
+		- mu_factor that describes mu = p_T*mu_factor (same for mu_f_factor)
+		- iso the isospin variable (='p' by default)
+		- n_f the number of flavours (=3 by default)
+		- is_pp a booleen (=False by default) to tell the collision type
+		- switch the convention of p_T integration (= 'dp_t' by default)'''
+		s = self.s
+		rs = self.rs 
+		p_t = x_T*rs/2.
+		M_t = np.sqrt(M**2+p_t**2)
+		b = (M/p_t)**2 #if M = 0, b = 0 and then you get the same formula as for real photons
+		x_proj = (x_T*np.sqrt(b+1)*np.exp(y)/2)/Xi
+		x_targ = (x_T*np.sqrt(b+1)*np.exp(-1*y)/2)*(1+b*(1-Xi))/((1-Xi)*(b+1))
+		mu2 = (M_t*mu_factor)**2
+		mu_f2 = (M_t*mu_f_factor)**2
+		Xi_factor = (1-Xi)/Xi +Xi/(1-Xi) +b*(((1-Xi)**2)/Xi-Xi/(1+b*(1-Xi))+2)
+		alpha_s = self.alpha_s_p(num,mu2)
+		if switch == 'dp_t':
+			prefactor = 4*pi*alpha*alpha_s/(pow(s,1.5)*x_T)
+		elif switch == 'd2p_t':
+			prefactor =  4*alpha*alpha_s/((s*x_T)**2)
+		elif switch == 'dp_t2':
+			prefactor = 4*pi*alpha*alpha_s/((s*x_T)**2)
+		F_qqbar = self.F_ij(x_proj,x_targ,mu_f2,num,direction='qqbar',iso=iso,n_f=n_f,is_pp=is_pp)
+		return F_qqbar*Xi_factor*(2*C_F/N_c)*prefactor
+	
 	def qbarq(self,y,x_T,Xi,num,mu_factor=1,mu_f_factor=1,iso='p',n_f=3,is_pp = False, switch = 'dp_t'): # y,x_T,xi,mu_f2,num,n_f, is_pp
 		'''Return the qbar(p)q(A)-> gamma G integrand with:
 		- y, the rapidity
@@ -444,6 +562,38 @@ class Sigma:
 		F_qbarq = self.F_ij(x_proj,x_targ,mu_f2,num,direction='qbarq',iso=iso,n_f=n_f,is_pp=is_pp)
 		return F_qbarq*Xi_factor*(C_F/N_c)*prefactor
 	
+	def qbarq_M(self,y,x_T,Xi,M,num,mu_factor=1,mu_f_factor=1,iso='p',n_f=3,is_pp = False, switch = 'dp_t'): # y,x_T,xi,mu_f2,num,n_f, is_pp
+		'''Return the q(p)qbar(A)-> gamma G integrand with:
+		- y, the rapidity
+		- x_T = 2*p_T/√s ,p_T the transverse momentum
+		- Xi the partonic fraction p+_3/p+_1 = -\hat{u}/\hat{s}
+		- M the mass of the virtual photon
+		- num the member of the pdf set
+		- mu_factor that describes mu = p_T*mu_factor (same for mu_f_factor)
+		- iso the isospin variable (='p' by default)
+		- n_f the number of flavours (=3 by default)
+		- is_pp a booleen (=False by default) to tell the collision type
+		- switch the convention of p_T integration (= 'dp_t' by default)'''
+		s = self.s
+		rs = self.rs 
+		p_t = x_T*rs/2.
+		M_t = np.sqrt(M**2+p_t**2)
+		b = (M/p_t)**2 #if M = 0, b = 0 and then you get the same formula as for real photons
+		x_proj = (x_T*np.sqrt(b+1)*np.exp(y)/2)/Xi
+		x_targ = (x_T*np.sqrt(b+1)*np.exp(-1*y)/2)*(1+b*(1-Xi))/((1-Xi)*(b+1))
+		mu2 = (M_t*mu_factor)**2
+		mu_f2 = (M_t*mu_f_factor)**2
+		Xi_factor = (1-Xi)/Xi +Xi/(1-Xi) +b*(((1-Xi)**2)/Xi-Xi/(1+b*(1-Xi))+2)
+		alpha_s = self.alpha_s_p(num,mu2)
+		if switch == 'dp_t':
+			prefactor = 4*pi*alpha*alpha_s/(pow(s,1.5)*x_T)
+		elif switch == 'd2p_t':
+			prefactor =  4*alpha*alpha_s/((s*x_T)**2)
+		elif switch == 'dp_t2':
+			prefactor = 4*pi*alpha*alpha_s/((s*x_T)**2)
+		F_qqbar = self.F_ij(x_proj,x_targ,mu_f2,num,direction='qbarq',iso=iso,n_f=n_f,is_pp=is_pp)
+		return F_qqbar*Xi_factor*(2*C_F/N_c)*prefactor
+	
 	def all_process_integrand(self,y,x_T,Xi,num,mu_factor=1,mu_f_factor=1,iso = 'p',n_f = 3, is_pp = False,switch = 'dp_t'):
 		'''Return the total pA (or pn, or pp if is_pp = True) collision 
 		integrand for single gamma production. But be carefull for the pn 
@@ -462,6 +612,26 @@ class Sigma:
 		I_qqbar = self.qqbar(y,x_T,Xi,num,mu_factor,mu_f_factor,iso,n_f,is_pp,switch)
 		I_qbarq = self.qbarq(y,x_T,Xi,num,mu_factor,mu_f_factor,iso,n_f,is_pp,switch)
 		return (I_Gq + I_qG + I_qqbar + I_qbarq)
+	
+	def all_process_integrand_M(self,y,x_T,Xi,M,num,mu_factor=1,mu_f_factor=1,iso = 'p',n_f = 3, is_pp = False,switch = 'dp_t'):
+		'''Return the total pA (or pn, or pp if is_pp = True) collision 
+		integrand for single gamma^\star production. But be carefull for the pn 
+		collisions, (curently,) you have to init your sigma with 2 proton pdf :
+		- y, the rapidity
+		- x_T = 2*p_T/√s ,p_T the transverse momentum
+		- Xi the partonic fraction p+_3/p+_1 = -\hat{u}/\hat{s}
+		- M the mass of the virtual photon
+		- num the member of the pdf set
+		- mu_factor that describes mu = p_T*mu_factor (same for mu_f_factor)
+		- iso the isospin variable (='p' by default)
+		- n_f the number of flavours (=3 by default)
+		- is_pp a booleen (=False by default) to tell the collision type
+		- switch the convention of p_T integration (= 'dp_t' by default)'''
+		I_Gq = self.Gq_M(y,x_T,Xi,M,num,mu_factor,mu_f_factor,iso,n_f,is_pp,switch)
+		I_qG = self.qG_M(y,x_T,Xi,M,num,mu_factor,mu_f_factor,n_f,is_pp,switch) 					# not concerned for isospin effects 
+		I_qqbar = self.qqbar_M(y,x_T,Xi,M,num,mu_factor,mu_f_factor,iso,n_f,is_pp,switch)
+		I_qbarq = self.qbarq_M(y,x_T,Xi,M,num,mu_factor,mu_f_factor,iso,n_f,is_pp,switch)
+		return (I_Gq + I_qG + I_qqbar + I_qbarq)
 		
 	def dsigma_tot_dydpt(self,y,x_T,num,mu_factor=1,mu_f_factor=1,iso = 'p',n_f = 3, is_pp = False,switch = 'dp_t'):
 		'''Return the total cross section for a point of the phase space (y,x_T)
@@ -478,6 +648,25 @@ class Sigma:
 		sigma, err = integrate.quad(Integrand,Xi_min(y,x_T),Xi_max(y,x_T), limit = N_limit)
 		return (conv_fact*sigma, conv_fact*err)
 	
+	def dsigma_tot_dydpt_M(self,y,x_T,M,num,mu_factor=1,mu_f_factor=1,iso = 'p',n_f = 3, is_pp = False,switch = 'dp_t'):
+		'''Return the total cross section for a point of the phase space (y,x_T)
+		integrated over xi with its integration uncertainites, with:
+		- y, the rapidity
+		- x_T = 2*p_T/√s ,p_T the transverse momentum
+		- M the mass of the virtual photon
+		- num the member of the pdf set
+		- mu_factor that describes mu = p_T*mu_factor (same for mu_f_factor)
+		- iso the isospin variable (='p' by default)
+		- n_f the number of flavours (=3 by default)
+		- is_pp a booleen (=False by default) to tell the collision type
+		- switch the convention of p_T integration (= 'dp_t' by default)'''
+		rs = self.rs
+		p_t = rs*x_T/2
+		b = (M/p_t)**2
+		Integrand = lambda xi: self.all_process_integrand_M(y,x_T,xi,M,num,mu_factor,mu_f_factor,iso,n_f,is_pp,switch)
+		sigma, err = integrate.quad(Integrand,Xi_min_M(y,x_T,b),Xi_max_M(y,x_T,b), limit = N_limit)
+		return (conv_fact*sigma, conv_fact*err)
+	
 	def dsigma_qG_dydpt(self,y,x_T,num,mu_factor=1,mu_f_factor=1,n_f = 3, is_pp = False,switch = 'dp_t'):
 		'''Return the qG cross section for a point of the phase space (y,x_T)
 		integrated over xi with its integration uncertainites, with:
@@ -490,6 +679,24 @@ class Sigma:
 		- switch the convention of p_T integration (= 'dp_t' by default)'''
 		Integrand = lambda xi: self.qG(y,x_T,xi,num,mu_factor,mu_f_factor,n_f,is_pp,switch)
 		sigma, err = integrate.quad(Integrand,Xi_min(y,x_T),Xi_max(y,x_T), limit = N_limit)
+		return (conv_fact*sigma, conv_fact*err)
+	
+	def dsigma_qG_dydpt_M(self,y,x_T,M,num,mu_factor=1,mu_f_factor=1,n_f = 3, is_pp = False,switch = 'dp_t'):
+		'''Return the qG cross section for a point of the phase space (y,x_T)
+		integrated over xi with its integration uncertainites, with:
+		- y, the rapidity
+		- x_T = 2*p_T/√s ,p_T the transverse momentum
+		- M the mass of the virtual photon
+		- num the member of the pdf set
+		- mu_factor that describes mu = p_T*mu_factor (same for mu_f_factor)
+		- n_f the number of flavours (=3 by default)
+		- is_pp a booleen (=False by default) to tell the collision type
+		- switch the convention of p_T integration (= 'dp_t' by default)'''
+		rs = self.rs
+		p_t = rs*x_T/2
+		b = (M/p_t)**2
+		Integrand = lambda xi: self.qG_M(y,x_T,xi,M,num,mu_factor,mu_f_factor,n_f,is_pp,switch)
+		sigma, err = integrate.quad(Integrand,Xi_min_M(y,x_T,b),Xi_max_M(y,x_T,b), limit = N_limit)
 		return (conv_fact*sigma, conv_fact*err)
 	
 	def dsigma_Gq_dydpt(self,y,x_T,num,mu_factor=1,mu_f_factor=1,iso = 'p',n_f = 3, is_pp = False,switch = 'dp_t'):
@@ -507,6 +714,25 @@ class Sigma:
 		sigma, err = integrate.quad(Integrand,Xi_min(y,x_T),Xi_max(y,x_T), limit = N_limit)
 		return (conv_fact*sigma, conv_fact*err)
 	
+	def dsigma_Gq_dydpt_M(self,y,x_T,M,num,mu_factor=1,mu_f_factor=1,iso = 'p',n_f = 3, is_pp = False,switch = 'dp_t'):
+		'''Return the Gq cross section for a point of the phase space (y,x_T)
+		integrated over xi with its integration uncertainites, with:
+		- y, the rapidity
+		- x_T = 2*p_T/√s ,p_T the transverse momentum
+		- M the mass of the virtual photon
+		- num the member of the pdf set
+		- mu_factor that describes mu = p_T*mu_factor (same for mu_f_factor)
+		- iso the isospin variable (='p' by default)
+		- n_f the number of flavours (=3 by default)
+		- is_pp a booleen (=False by default) to tell the collision type
+		- switch the convention of p_T integration (= 'dp_t' by default)'''
+		rs = self.rs
+		p_t = rs*x_T/2
+		b = (M/p_t)**2
+		Integrand = lambda xi: self.Gq_M(y,x_T,xi,M,num,mu_factor,mu_f_factor,iso,n_f,is_pp,switch)
+		sigma, err = integrate.quad(Integrand,Xi_min_M(y,x_T,b),Xi_max_M(y,x_T,b), limit = N_limit)
+		return (conv_fact*sigma, conv_fact*err)
+	
 	def dsigma_qqbar_dydpt(self,y,x_T,num,mu_factor=1,mu_f_factor=1,iso = 'p',n_f = 3, is_pp = False,switch = 'dp_t'):
 		'''Return the qqbar cross section for a point of the phase space (y,x_T)
 		integrated over xi with its integration uncertainites, with:
@@ -520,6 +746,25 @@ class Sigma:
 		- switch the convention of p_T integration (= 'dp_t' by default)'''
 		Integrand = lambda xi: self.qqbar(y,x_T,xi,num,mu_factor,mu_f_factor,iso,n_f,is_pp,switch)
 		sigma, err = integrate.quad(Integrand,Xi_min(y,x_T),Xi_max(y,x_T), limit = N_limit)
+		return (conv_fact*sigma, conv_fact*err)
+	
+	def dsigma_qqbar_dydpt_M(self,y,x_T,M,num,mu_factor=1,mu_f_factor=1,iso = 'p',n_f = 3, is_pp = False,switch = 'dp_t'):
+		'''Return the qqbar cross section for a point of the phase space (y,x_T)
+		integrated over xi with its integration uncertainites, with:
+		- y, the rapidity
+		- x_T = 2*p_T/√s ,p_T the transverse momentum
+		- M the mass of the virtual photon
+		- num the member of the pdf set
+		- mu_factor that describes mu = p_T*mu_factor (same for mu_f_factor)
+		- iso the isospin variable (='p' by default)
+		- n_f the number of flavours (=3 by default)
+		- is_pp a booleen (=False by default) to tell the collision type
+		- switch the convention of p_T integration (= 'dp_t' by default)'''
+		rs = self.rs
+		p_t = rs*x_T/2
+		b = (M/p_t)**2
+		Integrand = lambda xi: self.qqbar_M(y,x_T,xi,M,num,mu_factor,mu_f_factor,iso,n_f,is_pp,switch)
+		sigma, err = integrate.quad(Integrand,Xi_min_M(y,x_T,b),Xi_max_M(y,x_T,b), limit = N_limit)
 		return (conv_fact*sigma, conv_fact*err)
 	
 	def dsigma_qbarq_dydpt(self,y,x_T,num,mu_factor=1,mu_f_factor=1,iso = 'p',n_f = 3, is_pp = False,switch = 'dp_t'):
@@ -537,8 +782,28 @@ class Sigma:
 		sigma, err = integrate.quad(Integrand,Xi_min(y,x_T),Xi_max(y,x_T), limit = N_limit)
 		return (conv_fact*sigma, conv_fact*err)
 	
+	def dsigma_qbarq_dydpt_M(self,y,x_T,M,num,mu_factor=1,mu_f_factor=1,iso = 'p',n_f = 3, is_pp = False,switch = 'dp_t'):
+		'''Return the qbarq cross section for a point of the phase space (y,x_T)
+		integrated over xi with its integration uncertainites, with:
+		- y, the rapidity
+		- x_T = 2*p_T/√s ,p_T the transverse momentum
+		- M the mass of the virtual photon
+		- num the member of the pdf set
+		- mu_factor that describes mu = p_T*mu_factor (same for mu_f_factor)
+		- iso the isospin variable (='p' by default)
+		- n_f the number of flavours (=3 by default)
+		- is_pp a booleen (=False by default) to tell the collision type
+		- switch the convention of p_T integration (= 'dp_t' by default)'''
+		rs = self.rs
+		p_t = rs*x_T/2
+		b = (M/p_t)**2
+		Integrand = lambda xi: self.qbarq_M(y,x_T,xi,M,num,mu_factor,mu_f_factor,iso,n_f,is_pp,switch)
+		sigma, err = integrate.quad(Integrand,Xi_min_M(y,x_T,b),Xi_max_M(y,x_T,b), limit = N_limit)
+		return (conv_fact*sigma, conv_fact*err)
+	
 	### integration part ###
 	# Rapidity integration
+	# no urgent need here to do the virtual photon 
 	
 	def dsigma_tot_dy(self,x_T,num,mu_factor=1,mu_f_factor=1,iso ='p',n_f=3,is_pp = False,switch = 'dp_t'):
 		'''Return the list of the total cross section rapidity dependent and its
@@ -1066,7 +1331,7 @@ class Sigma:
 		- switch the convention of p_T integration (= 'dp_t' by default)'''
 		I_tot = lambda xi: self.all_process_integrand(y,x_T,xi,num,mu_factor,mu_f_factor,iso,n_f, is_pp ,switch)
 		return integrate.quad(I_tot,Xi_min(y,x_T),Xi_max(y,x_T))
-		
+	
 	# Uncertainties part (for Bayesian sets)
 	
 	def Uncertaintites_dy(self,x_T,mu_factor=1,mu_f_factor=1,iso='p',n_f=3,is_pp=False,switch='dp_t',var_err= 'mu,pdf'):
@@ -1426,6 +1691,32 @@ class Sigma:
 		Gq = self.dsigma_Gq_dydpt(y,x_T,num,mu_factor,mu_f_factor,iso,n_f,is_pp,switch)
 		qqbar = self.dsigma_qqbar_dydpt(y,x_T,num,mu_factor,mu_f_factor,iso,n_f,is_pp,switch)
 		qbarq = self.dsigma_qbarq_dydpt(y,x_T,num,mu_factor,mu_f_factor,iso,n_f,is_pp,switch)
+		tot = (qG[0]+Gq[0]+qqbar[0]+qbarq[0],qG[1]+Gq[1]+qqbar[1]+qbarq[1])
+		R_qG , R_Gq , R_qqbar, R_qbarq = qG[0]/tot[0],Gq[0]/tot[0],qqbar[0]/tot[0],qbarq[0]/tot[0]
+		err_R_qG = R_qG*((qG[1]/qG[0])**2+(tot[1]/tot[0])**2)**0.5
+		err_R_Gq = R_Gq*((Gq[1]/Gq[0])**2+(tot[1]/tot[0])**2)**0.5
+		err_R_qqbar = R_qqbar*((qqbar[1]/qqbar[0])**2+(tot[1]/tot[0])**2)**0.5
+		err_R_qbarq = R_qbarq*((qbarq[1]/qbarq[0])**2+(tot[1]/tot[0])**2)**0.5
+		return[(R_qG,err_R_qG),(R_Gq,err_R_Gq),(R_qqbar,err_R_qqbar),(R_qbarq,err_R_qbarq)]
+	
+	def R_composition_dydpt_M(self,y,x_T,M,num,mu_factor=1,mu_f_factor =1,iso = 'p',n_f=3,is_pp=False, switch='dp_t'):
+		'''Return the list of all 4 ratios for the 4 composants of the cross 
+		section over the total cross section and their integration uncertainties
+		with:
+		- y the rapidity
+		- x_T = 2*p_T/√s ,p_T the transverse momentum
+		- M the mass of the virtual photon
+		- num the member of the pdf set
+		- mu_factor that describes mu = p_T*mu_factor (same for mu_f_factor)
+		- iso the isospin variable (='p' by default)
+		- n_f the number of flavours (=3 by default)
+		- is_pp a booleen (=False by default) to tell the collision type
+		- switch the convention of p_T integration (= 'dp_t' by default)
+		as : [(R_qG,err_R_qG),(R_Gq,err_R_Gq),(R_qqbar,err_R_qqbar),(R_qbarq,err_R_qbarq)]'''
+		qG = self.dsigma_qG_dydpt_M(y,x_T,M,num,mu_factor,mu_f_factor,n_f,is_pp,switch)
+		Gq = self.dsigma_Gq_dydpt_M(y,x_T,M,num,mu_factor,mu_f_factor,iso,n_f,is_pp,switch)
+		qqbar = self.dsigma_qqbar_dydpt_M(y,x_T,M,num,mu_factor,mu_f_factor,iso,n_f,is_pp,switch)
+		qbarq = self.dsigma_qbarq_dydpt_M(y,x_T,M,num,mu_factor,mu_f_factor,iso,n_f,is_pp,switch)
 		tot = (qG[0]+Gq[0]+qqbar[0]+qbarq[0],qG[1]+Gq[1]+qqbar[1]+qbarq[1])
 		R_qG , R_Gq , R_qqbar, R_qbarq = qG[0]/tot[0],Gq[0]/tot[0],qqbar[0]/tot[0],qbarq[0]/tot[0]
 		err_R_qG = R_qG*((qG[1]/qG[0])**2+(tot[1]/tot[0])**2)**0.5
