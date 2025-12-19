@@ -70,12 +70,39 @@ N_y= 41
 N_limit = 1000																	# number of subdivisions for quad integration
 
 # Extern functions
-Xi_min = lambda y,x_T: x_T*np.exp(y)/2.
-Xi_max = lambda y,x_T: 1-(x_T*np.exp(-y)/2.)
+def x_1_tilde(y,x_T):
+	return x_T*np.exp(y)/2
 
-# for virtual photons, p_T -> M_T, so M_T/sqrt(s) = (x_T/2)*sqrt(b+1)
-Xi_min_M = lambda y,x_T,b:x_T*np.sqrt(b+1)*np.exp(y)/2.
-Xi_max_M = lambda y,x_T,b: (1-(x_T*np.sqrt(b+1)*np.exp(-y)/2.))/(1-(b/(b+1))*(x_T*np.sqrt(b+1)*np.exp(-y)/2.))
+def x_2_tilde(y,x_T):
+	return x_T*np.exp(-1*y)/2
+
+def x_1(y,x_T,Xi):
+	return x_1_tilde(y,x_T)/Xi
+
+def x_2(y,x_T,Xi):
+	return x_2_tilde(y,x_T)/(1-Xi)
+
+Xi_min = lambda y,x_T: x_1_tilde(y,x_T)
+Xi_max = lambda y,x_T: 1-x_2_tilde(y,x_T)
+
+# for virtual photons, p_T -> M_T, so M_T/sqrt(s) = (x_T/2)*sqrt(b+1), b = (M/p_T)**2 and x_T = 2*p_T/rs
+def tau(Xi,b):
+	return b*Xi*(1-Xi)/(b*(1-Xi)+1)
+
+def x_1_tilde_M(y,x_T,b):
+	return x_T*np.sqrt(b+1)*np.exp(y)/2
+
+def x_2_tilde_M(y,x_T,b):
+	return x_T*np.sqrt(b+1)*np.exp(-1*y)/2
+
+def x_1_M(y,x_T,Xi,b):
+	return x_1_tilde_M(y,x_T,b)/Xi
+
+def x_2_M(y,x_T,Xi,b):
+	return x_2_tilde_M(y,x_T,b)/(1-Xi+tau(Xi,b))
+
+Xi_min_M = lambda y,x_T,b: x_1_tilde_M(y,x_T,b)
+Xi_max_M = lambda y,x_T,b: (1-x_2_tilde_M(y,x_T,b))/(1-(b/(b+1))*x_2_tilde_M(y,x_T,b))
 
 def Y_list(x_T):
 	'''Return a numpy linespace array of N_y rapidities given x_T'''
@@ -339,8 +366,8 @@ class Sigma:
 		- n_f the number of flavours (=3 by default)
 		- is_pp a booleen (=False by default) to tell the collision type
 		- switch the convention of p_T integration (= 'dp_t' by default)'''
-		x_proj = x_T*np.exp(y)/(2*Xi)
-		x_targ = x_T*np.exp(-1*y)/(2*(1-Xi))
+		x_proj = x_1(y,x_T,Xi)
+		x_targ = x_2(y,x_T,Xi)
 		Xi_factor = 1-Xi+(1./(1-Xi))
 		s = self.s
 		rs = self.rs 
@@ -349,19 +376,18 @@ class Sigma:
 		mu_f2 = (p_t*mu_f_factor)**2
 		alpha_s = self.alpha_s_p(num,mu2)
 		if switch == 'dp_t':
-			prefactor = 8*pi*alpha*alpha_s/(pow(s,1.5)*x_T)
+			prefactor = 4*pi*alpha*alpha_s/(pow(s,1.5)*x_T)
 		elif switch == 'd2p_t':
-			prefactor =  2*alpha*alpha_s/((s*x_T/2.)**2)
+			prefactor = 4*alpha*alpha_s/((s*x_T)**2)
 		elif switch == 'dp_t2':
-			prefactor = 2*pi*alpha*alpha_s/((s*x_T/2.)**2)
+			prefactor = 4*pi*alpha*alpha_s/((s*x_T)**2)
 		if not is_pp:
 			F = self.F2_p(x_proj,mu_f2,num,iso ='p',n_f=n_f)
 			G = self.Gluon_A(x_targ,mu_f2,num)
-			return F*G*(C_F/(N_c**2 -1))*Xi_factor*prefactor
 		elif is_pp:
 			F = self.F2_p(x_proj,mu_f2,num,iso='p',n_f=n_f)
 			G = self.Gluon_p(x_targ,mu_f2,num)
-			return F*G*(C_F/(N_c**2 -1))*Xi_factor*prefactor
+		return F*G*Xi_factor*prefactor/N_c
 	
 	def qG_M(self,y,x_T,Xi,M,num,mu_factor=1,mu_f_factor=1,n_f=3,is_pp = False,switch = 'dp_t'): 				# not affected by isospin because G_p  = G_n 
 		'''Return the q(p)G(A)-> gamma^\star q integrand with:
@@ -379,13 +405,9 @@ class Sigma:
 		p_t = x_T*rs/2.
 		M_t = np.sqrt(M**2+p_t**2)
 		b = (M/p_t)**2 #if M = 0, b = 0 and then you get the same formula as for real photons
-		print('Xi = ' +str(Xi))
-		tau = b*Xi*(1-Xi)/(b*(1-Xi)+1)
-		x_proj = (x_T*np.sqrt(b+1)*np.exp(y)/2)/Xi
-		print('x_1 = '+ str(x_proj))
-		x_targ = (x_T*np.sqrt(b+1)*np.exp(-1*y)/2)/(1-Xi+tau)
-		print('x_2 = ' +str(x_targ))
-		Xi_factor = 1-Xi+(1./(1-Xi))-2*tau*(Xi-tau)/(1-Xi)
+		x_proj = x_1_M(y,x_T,Xi,b)
+		x_targ = x_2_M(y,x_T,Xi,b)
+		Xi_factor = 1-Xi+(1./(1-Xi))-2*tau(Xi,b)*(Xi-tau(Xi,b))/(1-Xi)
 		mu2 = (M_t*mu_factor)**2
 		mu_f2 = (M_t*mu_f_factor)**2
 		alpha_s = self.alpha_s_p(num,mu2)
@@ -398,11 +420,10 @@ class Sigma:
 		if not is_pp:
 			F = self.F2_p(x_proj,mu_f2,num,iso ='p',n_f=n_f)
 			G = self.Gluon_A(x_targ,mu_f2,num)
-			return F*G*Xi_factor*prefactor/(N_c*(b*(1-Xi)+1))
 		elif is_pp:
 			F = self.F2_p(x_proj,mu_f2,num,iso='p',n_f=n_f)
 			G = self.Gluon_p(x_targ,mu_f2,num)
-			return F*G*Xi_factor*prefactor/(N_c*(b*(1-Xi)+1))
+		return F*G*Xi_factor*prefactor/(N_c*(b*(1-Xi)+1))
 		
 	def Gq(self,y,x_T,Xi,num,mu_factor=1,mu_f_factor=1,iso ='p',n_f=3,is_pp = False,switch ='dp_t'):  
 		'''Return the G(p)q(A)-> gamma q integrand with:
@@ -415,8 +436,8 @@ class Sigma:
 		- n_f the number of flavours (=3 by default)
 		- is_pp a booleen (=False by default) to tell the collision type
 		- switch the convention of p_T integration (= 'dp_t' by default)'''
-		x_proj = x_T*np.exp(y)/(2*Xi)
-		x_targ = x_T*np.exp(-1*y)/(2*(1-Xi))
+		x_proj = x_1(y,x_T,Xi)
+		x_targ = x_2(y,x_T,Xi)
 		s = self.s
 		rs = self.rs 
 		p_t = x_T*rs/2.
@@ -425,18 +446,18 @@ class Sigma:
 		alpha_s = self.alpha_s_p(num,mu2)
 		Xi_factor = Xi+(1./Xi)
 		if switch == 'dp_t':
-			prefactor = 8*pi*alpha*alpha_s/(pow(s,1.5)*x_T)
+			prefactor = 4*pi*alpha*alpha_s/(pow(s,1.5)*x_T)
 		elif switch == 'd2p_t':
-			prefactor =  2*alpha*alpha_s/((s*x_T/2.)**2)
+			prefactor = 4*alpha*alpha_s/((s*x_T)**2)
 		elif switch == 'dp_t2':
-			prefactor = 2*pi*alpha*alpha_s/((s*x_T/2.)**2)
+			prefactor = 4*pi*alpha*alpha_s/((s*x_T)**2)
 		if not is_pp:
 			F = self.F2_A(x_targ,mu_f2,num,n_f)
 			G = self.Gluon_p(x_proj,mu_f2,num)
 		elif is_pp:
 			F = self.F2_p(x_targ,mu_f2,num,iso,n_f) 					# here, the target could be a neutron, so we put an iso parameter
 			G = self.Gluon_p(x_proj,mu_f2,num)
-		return F*G*(C_F/(N_c**2 -1))*Xi_factor*prefactor
+		return F*G*Xi_factor*prefactor/N_c
 	
 	def Gq_M(self,y,x_T,Xi,M,num,mu_factor=1,mu_f_factor=1,iso ='p',n_f=3,is_pp = False,switch ='dp_t'):  
 		'''Return the G(p)q(A)-> gamma^\star q integrand with:
@@ -465,7 +486,7 @@ class Sigma:
 		if switch == 'dp_t':
 			prefactor = 4*pi*alpha*alpha_s/(pow(s,1.5)*x_T)
 		elif switch == 'd2p_t':
-			prefactor =  4*alpha*alpha_s/((s*x_T)**2)
+			prefactor = 4*alpha*alpha_s/((s*x_T)**2)
 		elif switch == 'dp_t2':
 			prefactor = 4*pi*alpha*alpha_s/((s*x_T)**2)
 		if not is_pp:
@@ -488,6 +509,8 @@ class Sigma:
 		- n_f the number of flavours (=3 by default)
 		- is_pp a booleen (=False by default) to tell the collision type
 		- switch the convention of p_T integration (= 'dp_t' by default)'''
+		x_proj = x_1(y,x_T,Xi)
+		x_targ = x_2(y,x_T,Xi)
 		s = self.s
 		rs = self.rs 
 		p_t = x_T*rs/2.
@@ -495,16 +518,14 @@ class Sigma:
 		mu_f2 = (p_t*mu_f_factor)**2
 		alpha_s = self.alpha_s_p(num,mu2)
 		if switch == 'dp_t':
-			prefactor = 8*pi*alpha*alpha_s/(pow(s,1.5)*x_T)
+			prefactor = 4*pi*alpha*alpha_s/(pow(s,1.5)*x_T)
 		elif switch == 'd2p_t':
-			prefactor =  2*alpha*alpha_s/((s*x_T/2.)**2)
+			prefactor = 4*alpha*alpha_s/((s*x_T)**2)
 		elif switch == 'dp_t2':
-			prefactor = 2*pi*alpha*alpha_s/((s*x_T/2.)**2)
-		x_proj = x_T*np.exp(y)/(2.*Xi)
-		x_targ = x_T*np.exp(-1*y)/(2.*(1-Xi))
+			prefactor = 4*pi*alpha*alpha_s/((s*x_T)**2)
 		Xi_factor = (Xi/(1-Xi)) + ((1-Xi)/Xi)
 		F_qqbar = self.F_ij(x_proj,x_targ,mu_f2,num,direction='qqbar',iso=iso,n_f=n_f,is_pp=is_pp)
-		return F_qqbar*Xi_factor*(C_F/N_c)*prefactor
+		return F_qqbar*Xi_factor*(2*C_F/N_c)*prefactor
 	
 	def qqbar_M(self,y,x_T,Xi,M,num,mu_factor=1,mu_f_factor=1,iso='p',n_f=3,is_pp = False,switch = 'dp_t'):
 		'''Return the q(p)qbar(A)-> gamma G integrand with:
@@ -533,7 +554,7 @@ class Sigma:
 		if switch == 'dp_t':
 			prefactor = 4*pi*alpha*alpha_s/(pow(s,1.5)*x_T)
 		elif switch == 'd2p_t':
-			prefactor =  4*alpha*alpha_s/((s*x_T)**2)
+			prefactor = 4*alpha*alpha_s/((s*x_T)**2)
 		elif switch == 'dp_t2':
 			prefactor = 4*pi*alpha*alpha_s/((s*x_T)**2)
 		F_qqbar = self.F_ij(x_proj,x_targ,mu_f2,num,direction='qqbar',iso=iso,n_f=n_f,is_pp=is_pp)
@@ -550,6 +571,8 @@ class Sigma:
 		- n_f the number of flavours (=3 by default)
 		- is_pp a booleen (=False by default) to tell the collision type
 		- switch the convention of p_T integration (= 'dp_t' by default)'''
+		x_proj = x_1(y,x_T,Xi)
+		x_targ = x_2(y,x_T,Xi)
 		s = self.s
 		rs = self.rs 
 		p_t = x_T*rs/2.
@@ -557,16 +580,14 @@ class Sigma:
 		mu_f2 = (p_t*mu_f_factor)**2
 		alpha_s = self.alpha_s_p(num,mu2)
 		if switch == 'dp_t':
-			prefactor = 8*pi*alpha*alpha_s/(pow(s,1.5)*x_T)
+			prefactor = 4*pi*alpha*alpha_s/(pow(s,1.5)*x_T)
 		elif switch == 'd2p_t':
-			prefactor =  2*alpha*alpha_s/((s*x_T/2.)**2)
+			prefactor = 4*alpha*alpha_s/((s*x_T)**2)
 		elif switch == 'dp_t2':
-			prefactor = 2*pi*alpha*alpha_s/((s*x_T/2.)**2)
-		x_proj = x_T*np.exp(y)/(2*Xi)
-		x_targ = x_T*np.exp(-1*y)/(2*(1-Xi))
+			prefactor = 4*pi*alpha*alpha_s/((s*x_T)**2)
 		Xi_factor = (Xi/(1-Xi)) + ((1-Xi)/Xi)
 		F_qbarq = self.F_ij(x_proj,x_targ,mu_f2,num,direction='qbarq',iso=iso,n_f=n_f,is_pp=is_pp)
-		return F_qbarq*Xi_factor*(C_F/N_c)*prefactor
+		return F_qbarq*Xi_factor*(2*C_F/N_c)*prefactor
 	
 	def qbarq_M(self,y,x_T,Xi,M,num,mu_factor=1,mu_f_factor=1,iso='p',n_f=3,is_pp = False, switch = 'dp_t'): # y,x_T,xi,mu_f2,num,n_f, is_pp
 		'''Return the q(p)qbar(A)-> gamma G integrand with:
@@ -595,7 +616,7 @@ class Sigma:
 		if switch == 'dp_t':
 			prefactor = 4*pi*alpha*alpha_s/(pow(s,1.5)*x_T)
 		elif switch == 'd2p_t':
-			prefactor =  4*alpha*alpha_s/((s*x_T)**2)
+			prefactor = 4*alpha*alpha_s/((s*x_T)**2)
 		elif switch == 'dp_t2':
 			prefactor = 4*pi*alpha*alpha_s/((s*x_T)**2)
 		F_qqbar = self.F_ij(x_proj,x_targ,mu_f2,num,direction='qbarq',iso=iso,n_f=n_f,is_pp=is_pp)
