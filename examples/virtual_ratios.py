@@ -46,7 +46,7 @@ x_T = (2.*p_T)/rs
 for m in M:
     b = (m/p_T)**2
     Y = sig.Y_list_M(x_T,b)
-    print((min(Y),max(Y)))
+    # print((min(Y),max(Y)))
     R_qg, R_gq, R_qqbar, R_qbarq = [],[],[],[]
     for y in Y:
         R = pPb_cross_section.R_composition_dydpt_M(y,x_T,m,cen,is_pp=Collision(col_type),switch=convention)
