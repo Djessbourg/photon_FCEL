@@ -8,7 +8,7 @@
 # Credits : BOURGEAIS Djessy; ARLEO Francois.
 # Subatech (IN2P3,CNRS)
 # Nantes, France
-# Last modified: 12/12/2025
+# Last modified: 7/01/2026
 # =============================================================================
 
 import sys
@@ -354,8 +354,8 @@ class Sigma:
 		A = self.pdf_A(num)
 		return A.xfxQ2(particle["g"]["id"],x,mu_f2)/x
 	
-	def jac_xi(self,Xi,b):
-		return 1/(self.rs*Xi*(1-Xi+tau(Xi,b)))
+	def jac_xi(self,Xi):
+		return 1/(pi*self.s*Xi*(1-Xi))
 	
 	### integrand functions ###
 	
@@ -414,7 +414,6 @@ class Sigma:
 		Xi_factor = 1-Xi+(1./(1-Xi))-2*tau(Xi,b)*(Xi-tau(Xi,b))/(1-Xi)
 		mu2 = (M_t*mu_factor)**2
 		mu_f2 = (M_t*mu_f_factor)**2
-		dsigma_dxi = Xi_factor/hat_s
 		alpha_s = self.alpha_s_p(num,mu2)
 		if switch == 'dp_t':
 			prefactor = pi*alpha*alpha_s*x_T*rs
@@ -422,13 +421,14 @@ class Sigma:
 			prefactor = alpha*alpha_s
 		elif switch == 'dp_t2':
 			prefactor = pi*alpha*alpha_s
+		dsigma_dxi = Xi_factor*prefactor/(hat_s*N_c)
 		if not is_pp:
 			F = self.F2_p(x_proj,mu_f2,num,iso ='p',n_f=n_f)
 			G = self.Gluon_A(x_targ,mu_f2,num)
 		elif is_pp:
 			F = self.F2_p(x_proj,mu_f2,num,iso='p',n_f=n_f)
 			G = self.Gluon_p(x_targ,mu_f2,num)
-		return F*G*dsigma_dxi*prefactor*self.jac_xi(Xi,b)/N_c
+		return F*G*dsigma_dxi*self.jac_xi(Xi)
 		
 	def Gq(self,y,x_T,Xi,num,mu_factor=1,mu_f_factor=1,iso ='p',n_f=3,is_pp = False,switch ='dp_t'):  
 		'''Return the G(p)q(A)-> gamma q integrand with:
@@ -487,7 +487,6 @@ class Sigma:
 		mu2 = (M_t*mu_factor)**2
 		mu_f2 = (M_t*mu_f_factor)**2
 		Xi_factor = Xi - tau(Xi,b) + 1/(Xi-tau(Xi,b)) - 2*tau(Xi,b)*(1-Xi)/(Xi-tau(Xi,b))
-		dsigma_dxi = Xi_factor/hat_s
 		alpha_s = self.alpha_s_p(num,mu2)
 		if switch == 'dp_t':
 			prefactor = pi*alpha*alpha_s*x_T*rs
@@ -495,13 +494,14 @@ class Sigma:
 			prefactor = alpha*alpha_s
 		elif switch == 'dp_t2':
 			prefactor = pi*alpha*alpha_s
+		dsigma_dxi = Xi_factor*prefactor/(hat_s*N_c)
 		if not is_pp:
 			F = self.F2_p(x_proj,mu_f2,num,iso ='p',n_f=n_f)
 			G = self.Gluon_A(x_targ,mu_f2,num)
 		elif is_pp:
 			F = self.F2_p(x_proj,mu_f2,num,iso='p',n_f=n_f)
 			G = self.Gluon_p(x_targ,mu_f2,num)
-		return F*G*dsigma_dxi*self.jac_xi(Xi,b)*prefactor*N_c
+		return F*G*dsigma_dxi*self.jac_xi(Xi)
 		
 	def qqbar(self,y,x_T,Xi,num,mu_factor=1,mu_f_factor=1,iso='p',n_f=3,is_pp = False,switch = 'dp_t'):
 		'''Return the q(p)qbar(A)-> gamma G integrand with:
@@ -549,14 +549,12 @@ class Sigma:
 		p_t = x_T*rs/2.
 		M_t = np.sqrt(M**2+p_t**2)
 		b = (M/p_t)**2 #if M = 0, b = 0 and then you get the same formula as for real photons
-		tau = b*Xi*(1-Xi)/(b*(1-Xi)+1)
-		x_proj = (x_T*np.sqrt(b+1)*np.exp(y)/2)/Xi
-		x_targ = (x_T*np.sqrt(b+1)*np.exp(-1*y)/2)/(1-Xi+tau)
+		x_proj = x_1_M(y,x_T,Xi,b)
+		x_targ = x_1_M(y,x_T,Xi,b)
 		hat_s = s*x_proj*x_targ
 		mu2 = (M_t*mu_factor)**2
 		mu_f2 = (M_t*mu_f_factor)**2
-		Xi_factor = (1-Xi)/(Xi-tau) +(Xi-tau)/(1-Xi) + 2*tau/((Xi-tau)*(1-Xi))
-		dsigma_dxi = Xi_factor/hat_s
+		Xi_factor = (1-Xi)/(Xi-tau(Xi,b)) +(Xi-tau(Xi,b))/(1-Xi) + 2*tau(Xi,b)/((Xi-tau(Xi,b))*(1-Xi))
 		alpha_s = self.alpha_s_p(num,mu2)
 		if switch == 'dp_t':
 			prefactor = pi*alpha*alpha_s*x_T*rs
@@ -564,8 +562,9 @@ class Sigma:
 			prefactor = alpha*alpha_s
 		elif switch == 'dp_t2':
 			prefactor = pi*alpha*alpha_s
+		dsigma_dxi = Xi_factor*prefactor*2*C_F/(hat_s*N_c)
 		F_qqbar = self.F_ij(x_proj,x_targ,mu_f2,num,direction='qqbar',iso=iso,n_f=n_f,is_pp=is_pp)
-		return F_qqbar*dsigma_dxi*self.jac_xi(Xi,b)*(2*C_F/N_c)*prefactor
+		return F_qqbar*dsigma_dxi*self.jac_xi(Xi)
 	
 	def qbarq(self,y,x_T,Xi,num,mu_factor=1,mu_f_factor=1,iso='p',n_f=3,is_pp = False, switch = 'dp_t'): # y,x_T,xi,mu_f2,num,n_f, is_pp
 		'''Return the qbar(p)q(A)-> gamma G integrand with:
@@ -613,14 +612,12 @@ class Sigma:
 		p_t = x_T*rs/2.
 		M_t = np.sqrt(M**2+p_t**2)
 		b = (M/p_t)**2 #if M = 0, b = 0 and then you get the same formula as for real photons
-		tau = b*Xi*(1-Xi)/(b*(1-Xi)+1)
-		x_proj = (x_T*np.sqrt(b+1)*np.exp(y)/2)/Xi
-		x_targ = (x_T*np.sqrt(b+1)*np.exp(-1*y)/2)/(1-Xi+tau)
+		x_proj = x_1_M(y,x_T,Xi,b)
+		x_targ = x_2_M(y,x_T,Xi,b)
 		hat_s = s*x_proj*x_targ
 		mu2 = (M_t*mu_factor)**2
 		mu_f2 = (M_t*mu_f_factor)**2
-		Xi_factor = (1-Xi)/(Xi-tau) +(Xi-tau)/(1-Xi) + 2*tau/((Xi-tau)*(1-Xi))
-		dsigma_dxi = Xi_factor/hat_s
+		Xi_factor = (1-Xi)/(Xi-tau(Xi,b)) +(Xi-tau(Xi,b))/(1-Xi) + 2*tau(Xi,b)/((Xi-tau(Xi,b))*(1-Xi))
 		alpha_s = self.alpha_s_p(num,mu2)
 		if switch == 'dp_t':
 			prefactor = pi*alpha*alpha_s*x_T*rs
@@ -628,8 +625,9 @@ class Sigma:
 			prefactor = alpha*alpha_s
 		elif switch == 'dp_t2':
 			prefactor = pi*alpha*alpha_s
+		dsigma_dxi = Xi_factor*prefactor*2*C_F/(hat_s*N_c)
 		F_qqbar = self.F_ij(x_proj,x_targ,mu_f2,num,direction='qbarq',iso=iso,n_f=n_f,is_pp=is_pp)
-		return F_qqbar*dsigma_dxi*self.jac_xi(Xi,b)*(2*C_F/N_c)*prefactor
+		return F_qqbar*dsigma_dxi*self.jac_xi(Xi)
 	
 	def all_process_integrand(self,y,x_T,Xi,num,mu_factor=1,mu_f_factor=1,iso = 'p',n_f = 3, is_pp = False,switch = 'dp_t'):
 		'''Return the total pA (or pn, or pp if is_pp = True) collision 
