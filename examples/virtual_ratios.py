@@ -39,9 +39,41 @@ convention = 'd2p_t'													# Define a cross section convention btw dp_t, d
 col_type = 'pp'
 Collision = sig.Collision
 
-### y dependant ###
-p_T = 10																# GeV
+p_T = 5																# GeV
 x_T = (2.*p_T)/rs 
+
+### integrand test ###
+y_space = [-2,0,2]
+m = 10 # GeV
+b = (m/p_T)**2
+for y in y_space:
+    epsilon = pow(10,-3)
+    Xi_min,Xi_max = sig.Xi_min_M(y,x_T,b)+epsilon,sig.Xi_max_M(y,x_T,b)-epsilon
+    Xi = np.linspace(Xi_min,Xi_max,100)
+    qg,gq,qqbar,qbarq=[],[],[],[]
+    for xi in Xi:   
+        qg.append(pPb_cross_section.qG_M(y,x_T,xi,m,cen,is_pp=Collision(col_type),switch=convention))
+        gq.append(pPb_cross_section.Gq_M(y,x_T,xi,m,cen,is_pp=Collision(col_type),switch=convention))
+        qqbar.append(pPb_cross_section.qqbar_M(y,x_T,xi,m,cen,is_pp=Collision(col_type),switch=convention))
+        qbarq.append(pPb_cross_section.qbarq_M(y,x_T,xi,m,cen,is_pp=Collision(col_type),switch=convention))
+    plt.plot(Xi,qg,label='qg')
+    plt.plot(Xi,gq,label='gq')
+    plt.plot(Xi,qqbar,label='qqbar')
+    plt.plot(Xi,qbarq,label='qbarq')
+    plt.xlim(0,1)
+    plt.yscale('log')
+    plt.xlabel(r'$\xi$',fontsize=f_size)
+    plt.axvline(x=Xi_min, color='grey', alpha=0.3)
+    plt.axvline(x=Xi_max, color='grey', alpha=0.3)
+    plot_usuals(n=2)
+    plt.ylabel(r'$d\sigma/d\xi$')
+    plt.title(r'$M=$'+str(m)+r' GeV, $y =$'+str(y)+r', $p_\perp = $'+str(p_T)+' GeV')
+    plt.tight_layout()
+    plt.savefig(os.path.join(plots_dir, 'sigma_integrand'+col_type+'_component_virtual_'+str(rs)+'GeV_'+convention+'_y'+str(y)+'_M'+str(m)+'GeV'+'.pdf'))
+    plt.show()
+    plt.close()
+### y dependant ###
+
 
 for m in M:
     b = (m/p_T)**2
@@ -61,6 +93,6 @@ for m in M:
     plt.ylabel(r'$R_i = \sigma_i/\sigma_{tot}$')
     plt.title(r'$\gamma^\star$ production for $M=$'+str(m)+r' GeV and $p_\perp = $'+str(p_T)+' GeV')
     plt.tight_layout()
-    plt.savefig(os.path.join(plots_dir, 'sigma_'+col_type+'_component_virtual_ratios_'+str(rs)+'GeV_'+convention+'_y'+str(y)+'_M'+str(m)+'GeV'+'.pdf'))
+    plt.savefig(os.path.join(plots_dir, 'sigma_'+col_type+'_component_virtual_ratios_'+str(rs)+'GeV_'+convention+'_p_T'+str(p_T)+'GeV_M'+str(m)+'GeV'+'.pdf'))
     plt.show()
     plt.close()

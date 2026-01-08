@@ -104,6 +104,25 @@ def x_2_M(y,x_T,Xi,b):
 Xi_min_M = lambda y,x_T,b: x_1_tilde_M(y,x_T,b)
 Xi_max_M = lambda y,x_T,b: (1-x_2_tilde_M(y,x_T,b))/(1-(b/(b+1))*x_2_tilde_M(y,x_T,b))
 
+Xi_dict ={ #dictionary of the Xi(xi,b) expression in dsigma/dxi for the massive ("M") and massles ("M=0") casses
+	'qg': {
+		'M':lambda xi,b: 1-xi+(1./(1-xi))-2*tau(xi,b)*(xi-tau(xi,b))/(1-xi),
+		"M=0": lambda xi: 1-xi+(1./(1-xi))
+	},
+	'gq':{
+		'M':lambda xi,b: xi-tau(xi,b)+(1./(xi-tau(xi,b)))-2*tau(xi,b)*(1-xi)/(xi-tau(xi,b)),
+		"M=0": lambda xi: xi+1./xi
+	},
+	'qqbar':{
+		'M':lambda xi,b:(1-xi)/(xi-tau(xi,b)) +(xi-tau(xi,b))/(1-xi) + 2*tau(xi,b)/((xi-tau(xi,b))*(1-xi)),
+		"M=0": lambda xi: (1-xi)/xi + xi/(1-xi)
+	},
+	'qbarq':{
+		'M':lambda xi,b:(1-xi)/(xi-tau(xi,b)) +(xi-tau(xi,b))/(1-xi) + 2*tau(xi,b)/((xi-tau(xi,b))*(1-xi)),
+		"M=0": lambda xi: (1-xi)/xi + xi/(1-xi)
+	}
+}
+
 def Y_list(x_T):
 	'''Return a numpy linespace array of N_y rapidities given x_T'''
 	y_min = max(-np.log(2./x_T),-6)
@@ -355,7 +374,7 @@ class Sigma:
 		return A.xfxQ2(particle["g"]["id"],x,mu_f2)/x
 	
 	def jac_xi(self,Xi):
-		return 1/(pi*self.s*Xi*(1-Xi))
+		return 1/(self.s*Xi*(1-Xi))
 	
 	### integrand functions ###
 	
@@ -422,7 +441,7 @@ class Sigma:
 		elif switch == 'dp_t2':
 			prefactor = pi*alpha*alpha_s
 		dsigma_dxi = Xi_factor*prefactor/(hat_s*N_c)
-		if not is_pp:
+		if not(is_pp):
 			F = self.F2_p(x_proj,mu_f2,num,iso ='p',n_f=n_f)
 			G = self.Gluon_A(x_targ,mu_f2,num)
 		elif is_pp:
@@ -550,7 +569,7 @@ class Sigma:
 		M_t = np.sqrt(M**2+p_t**2)
 		b = (M/p_t)**2 #if M = 0, b = 0 and then you get the same formula as for real photons
 		x_proj = x_1_M(y,x_T,Xi,b)
-		x_targ = x_1_M(y,x_T,Xi,b)
+		x_targ = x_2_M(y,x_T,Xi,b)
 		hat_s = s*x_proj*x_targ
 		mu2 = (M_t*mu_factor)**2
 		mu_f2 = (M_t*mu_f_factor)**2
