@@ -29,7 +29,7 @@ p = "nNNPDF30_nlo_as_0118_p"
 Pb = "nNNPDF30_nlo_as_0118_A208_Z82"
 Z = 82.
 A = 208.
-M = [5,10,15] # vitual photon mass in GeV
+M = [0,2,5,10,15] # vitual photon mass in GeV
 cen = 0
 
 pPb_cross_section = sig.Sigma(p,Pb,s,Z,A)
@@ -41,37 +41,64 @@ Collision = sig.Collision
 
 p_T = 5																# GeV
 x_T = (2.*p_T)/rs 
+### Xi function ###
+Xi_dict = sig.Xi_dict
+Xi_qg = Xi_dict["qg"]["M"]
+Xi_gq = Xi_dict["gq"]["M"]
+Xi_qqbar = Xi_dict["qqbar"]["M"]
 
-### integrand test ###
 y_space = [-2,0,2]
 m = 10 # GeV
 b = (m/p_T)**2
-for y in y_space:
-    epsilon = pow(10,-3)
-    Xi_min,Xi_max = sig.Xi_min_M(y,x_T,b)+epsilon,sig.Xi_max_M(y,x_T,b)-epsilon
-    Xi = np.linspace(Xi_min,Xi_max,100)
-    qg,gq,qqbar,qbarq=[],[],[],[]
-    for xi in Xi:   
-        qg.append(pPb_cross_section.qG_M(y,x_T,xi,m,cen,is_pp=Collision(col_type),switch=convention))
-        gq.append(pPb_cross_section.Gq_M(y,x_T,xi,m,cen,is_pp=Collision(col_type),switch=convention))
-        qqbar.append(pPb_cross_section.qqbar_M(y,x_T,xi,m,cen,is_pp=Collision(col_type),switch=convention))
-        qbarq.append(pPb_cross_section.qbarq_M(y,x_T,xi,m,cen,is_pp=Collision(col_type),switch=convention))
-    plt.plot(Xi,qg,label='qg')
-    plt.plot(Xi,gq,label='gq')
-    plt.plot(Xi,qqbar,label='qqbar')
-    plt.plot(Xi,qbarq,label='qbarq')
-    plt.xlim(0,1)
-    plt.yscale('log')
-    plt.xlabel(r'$\xi$',fontsize=f_size)
-    plt.axvline(x=Xi_min, color='grey', alpha=0.3)
-    plt.axvline(x=Xi_max, color='grey', alpha=0.3)
-    plot_usuals(n=2)
-    plt.ylabel(r'$d\sigma/d\xi$')
-    plt.title(r'$M=$'+str(m)+r' GeV, $y =$'+str(y)+r', $p_\perp = $'+str(p_T)+' GeV')
-    plt.tight_layout()
-    plt.savefig(os.path.join(plots_dir, 'sigma_integrand'+col_type+'_component_virtual_'+str(rs)+'GeV_'+convention+'_y'+str(y)+'_M'+str(m)+'GeV'+'.pdf'))
-    plt.show()
-    plt.close()
+
+# for m in M:
+#     b = (m/p_T)**2
+#     epsilon = pow(10,-3)
+#     Xi_min,Xi_max = sig.Xi_min_M(0,x_T,b)+epsilon,sig.Xi_max_M(0,x_T,b)-epsilon
+#     Xi = np.linspace(Xi_min,Xi_max,100)
+#     plt.plot(Xi,Xi_qg(Xi,b),label=r'$\Xi_{qg}$')
+#     plt.plot(Xi,Xi_gq(Xi,b),label=r'$\Xi_{gq}$')
+#     plt.plot(Xi,Xi_qqbar(Xi,b),label=r'$\Xi_{q\bar{q}}$')
+#     plt.xlim(0,1)
+#     plt.yscale('log')
+#     plt.xlabel(r'$\xi$',fontsize=f_size)
+#     plt.axvline(x=Xi_min, color='grey', alpha=0.3)
+#     plt.axvline(x=Xi_max, color='grey', alpha=0.3)
+#     plot_usuals(n=2)
+#     # plt.ylabel(r'$d\sigma/d\xi$')
+#     plt.title(r'$M=$'+str(m)+r' GeV, $p_\perp = $'+str(p_T)+r' GeV')
+#     plt.tight_layout()
+#     plt.savefig(os.path.join(plots_dir, 'Xi'+col_type+'_component_virtual_'+str(rs)+'GeV_'+convention+'_M'+str(m)+'GeV_pt'+str(p_T)+'GeV.pdf' ))
+#     plt.show()
+#     plt.close()
+### integrand test ###
+
+# for y in y_space:
+#     epsilon = pow(10,-3)
+#     Xi_min,Xi_max = sig.Xi_min_M(y,x_T,b)+epsilon,sig.Xi_max_M(y,x_T,b)-epsilon
+#     Xi = np.linspace(Xi_min,Xi_max,100)
+#     qg,gq,qqbar,qbarq=[],[],[],[]
+#     for xi in Xi:   
+#         qg.append(pPb_cross_section.qG_M(y,x_T,xi,m,cen,is_pp=Collision(col_type),switch=convention))
+#         gq.append(pPb_cross_section.Gq_M(y,x_T,xi,m,cen,is_pp=Collision(col_type),switch=convention))
+#         qqbar.append(pPb_cross_section.qqbar_M(y,x_T,xi,m,cen,is_pp=Collision(col_type),switch=convention))
+#         qbarq.append(pPb_cross_section.qbarq_M(y,x_T,xi,m,cen,is_pp=Collision(col_type),switch=convention))
+#     plt.plot(Xi,qg,label='qg')
+#     plt.plot(Xi,gq,label='gq')
+#     plt.plot(Xi,qqbar,label='qqbar')
+#     plt.plot(Xi,qbarq,label='qbarq')
+#     plt.xlim(0,1)
+#     plt.yscale('log')
+#     plt.xlabel(r'$\xi$',fontsize=f_size)
+#     plt.axvline(x=Xi_min, color='grey', alpha=0.3)
+#     plt.axvline(x=Xi_max, color='grey', alpha=0.3)
+#     plot_usuals(n=2)
+#     plt.ylabel(r'$d\sigma/d\xi$')
+#     plt.title(r'$M=$'+str(m)+r' GeV, $y =$'+str(y)+r', $p_\perp = $'+str(p_T)+' GeV')
+#     plt.tight_layout()
+#     plt.savefig(os.path.join(plots_dir, 'sigma_integrand'+col_type+'_component_virtual_'+str(rs)+'GeV_'+convention+'_y'+str(y)+'_M'+str(m)+'GeV'+'.pdf'))
+#     plt.show()
+#     plt.close()
 ### y dependant ###
 
 

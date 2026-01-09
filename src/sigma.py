@@ -390,7 +390,7 @@ class Sigma:
 		- switch the convention of p_T integration (= 'dp_t' by default)'''
 		x_proj = x_1(y,x_T,Xi)
 		x_targ = x_2(y,x_T,Xi)
-		Xi_factor = 1-Xi+(1./(1-Xi))
+		Xi_factor = Xi_dict["qg"]["M=0"](Xi)
 		s = self.s
 		rs = self.rs 
 		p_t = x_T*rs/2.
@@ -430,7 +430,7 @@ class Sigma:
 		x_proj = x_1_M(y,x_T,Xi,b)
 		x_targ = x_2_M(y,x_T,Xi,b)
 		hat_s = s*x_proj*x_targ
-		Xi_factor = 1-Xi+(1./(1-Xi))-2*tau(Xi,b)*(Xi-tau(Xi,b))/(1-Xi)
+		Xi_factor = Xi_dict["qg"]["M"](Xi,b)
 		mu2 = (M_t*mu_factor)**2
 		mu_f2 = (M_t*mu_f_factor)**2
 		alpha_s = self.alpha_s_p(num,mu2)
@@ -468,7 +468,7 @@ class Sigma:
 		mu2 = (p_t*mu_factor)**2
 		mu_f2 = (p_t*mu_f_factor)**2
 		alpha_s = self.alpha_s_p(num,mu2)
-		Xi_factor = Xi+(1./Xi)
+		Xi_factor = Xi_dict["gq"]["M=0"](Xi)
 		if switch == 'dp_t':
 			prefactor = 4*pi*alpha*alpha_s/(pow(s,1.5)*x_T)
 		elif switch == 'd2p_t':
@@ -505,7 +505,7 @@ class Sigma:
 		hat_s = s*x_proj*x_targ
 		mu2 = (M_t*mu_factor)**2
 		mu_f2 = (M_t*mu_f_factor)**2
-		Xi_factor = Xi - tau(Xi,b) + 1/(Xi-tau(Xi,b)) - 2*tau(Xi,b)*(1-Xi)/(Xi-tau(Xi,b))
+		Xi_factor = Xi_dict["gq"]["M"](Xi,b)
 		alpha_s = self.alpha_s_p(num,mu2)
 		if switch == 'dp_t':
 			prefactor = pi*alpha*alpha_s*x_T*rs
@@ -547,7 +547,7 @@ class Sigma:
 			prefactor = 4*alpha*alpha_s/((s*x_T)**2)
 		elif switch == 'dp_t2':
 			prefactor = 4*pi*alpha*alpha_s/((s*x_T)**2)
-		Xi_factor = (Xi/(1-Xi)) + ((1-Xi)/Xi)
+		Xi_factor = Xi_dict["qqbar"]["M=0"](Xi)
 		F_qqbar = self.F_ij(x_proj,x_targ,mu_f2,num,direction='qqbar',iso=iso,n_f=n_f,is_pp=is_pp)
 		return F_qqbar*Xi_factor*(2*C_F/N_c)*prefactor
 	
@@ -573,7 +573,7 @@ class Sigma:
 		hat_s = s*x_proj*x_targ
 		mu2 = (M_t*mu_factor)**2
 		mu_f2 = (M_t*mu_f_factor)**2
-		Xi_factor = (1-Xi)/(Xi-tau(Xi,b)) +(Xi-tau(Xi,b))/(1-Xi) + 2*tau(Xi,b)/((Xi-tau(Xi,b))*(1-Xi))
+		Xi_factor = Xi_dict["qqbar"]["M"](Xi,b)
 		alpha_s = self.alpha_s_p(num,mu2)
 		if switch == 'dp_t':
 			prefactor = pi*alpha*alpha_s*x_T*rs
@@ -610,7 +610,7 @@ class Sigma:
 			prefactor = 4*alpha*alpha_s/((s*x_T)**2)
 		elif switch == 'dp_t2':
 			prefactor = 4*pi*alpha*alpha_s/((s*x_T)**2)
-		Xi_factor = (Xi/(1-Xi)) + ((1-Xi)/Xi)
+		Xi_factor = Xi_dict["qbarq"]["M=0"](Xi)
 		F_qbarq = self.F_ij(x_proj,x_targ,mu_f2,num,direction='qbarq',iso=iso,n_f=n_f,is_pp=is_pp)
 		return F_qbarq*Xi_factor*(2*C_F/N_c)*prefactor
 	
@@ -636,7 +636,7 @@ class Sigma:
 		hat_s = s*x_proj*x_targ
 		mu2 = (M_t*mu_factor)**2
 		mu_f2 = (M_t*mu_f_factor)**2
-		Xi_factor = (1-Xi)/(Xi-tau(Xi,b)) +(Xi-tau(Xi,b))/(1-Xi) + 2*tau(Xi,b)/((Xi-tau(Xi,b))*(1-Xi))
+		Xi_factor = Xi_dict["qbarq"]["M"](Xi,b)
 		alpha_s = self.alpha_s_p(num,mu2)
 		if switch == 'dp_t':
 			prefactor = pi*alpha*alpha_s*x_T*rs
