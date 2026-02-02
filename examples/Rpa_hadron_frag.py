@@ -67,7 +67,7 @@ ylims = {
 fixed_y = [-3.9,0,3.9] #+/-3.9 would be rounded to +/-4
 
 ### Initialisation of a sigma object ###
-proton = "nNNPDF30_nlo_as_0118_p"
+proton = "NNPDF40_lo_as_01180"
 Pb = "nNNPDF30_nlo_as_0118_A208_Z82"
 
 pPb_cross_section = sig.Sigma(proton,Pb,s,Z,A)
@@ -77,7 +77,7 @@ pPb_cross_section = sig.Sigma(proton,Pb,s,Z,A)
 process ={
 	"1":{"rho":{"3bar":2./3.,"6":1./3.},"Fc":{"3bar":4./3.,"6":2.}},
 	"3":{"rho":{"1":8./9.,"8":1./9.},"Fc":{"1":0.,"8":3.}},
-	"5":{"rho":{"3bar":4./22.,"6":19./22.},"Fc":{"3bar":4./3.,"6":2.}},
+	"5":{"rho":{"3bar":2./11.,"6":9./11.},"Fc":{"3bar":4./3.,"6":2.}},
 	"7":{"rho":{"1":0.,"8":1.},"Fc":{"1":0.,"8":3.}},
 	"8":{"rho":{"1":80./105.,"8":25./105.},"Fc":{"1":0.,"8":3.}},
 	"9":{"rho":{"1":0.,"8":1.},"Fc":{"1":0.,"8":3.}},
@@ -647,13 +647,12 @@ def all_plots(Y,pt,z,q,xi):
 pt = p_T_dispo[1]
 x_T = 2*pt/rs
 Y_list = sig.Y_list(x_T)
-pt_plots(Y_list, fixed_y, z, q, xi)
-all_plots(Y_list,pt, z, q, xi)
+# pt_plots(Y_list, fixed_y, z, q, xi)
 for p_t in p_T_dispo:
 	x_T = 2*p_t/rs
 	Y_list = sig.Y_list(x_T)
 # 	plot_splines(np.linspace(-6,6,100), p_t, p_num_plot_list,p_num_color_list,n=1)
 # 	plot_f_alpha(np.linspace(-6,6,100), p_t, p_num_plot_list,p_num_color_list,n=2)
-# 	all_plots(Y_list,p_t, z, q, xi)
+	all_plots(Y_list,p_t, z, q, xi)
 # plot_mains(np.linspace(-6, 6,100),z, q, xi, n)
 # plot_sigma_spline(np.linspace(-6, 6,100))
