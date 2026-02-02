@@ -24,12 +24,14 @@ rs = 8800
 s = (rs)**2 # CM energy in Gev2
 proton = "NNPDF40_lo_as_01180"
 Pb = "nNNPDF30_nlo_as_0118_A208_Z82"
-# Lead 
-Z = 82
-A = 208
-# Gold
-# Z = 79
-# A = 197
+
+Atom = sig.Atom
+
+atom = 'Pb'
+# atom = 'Au'
+
+Z = Atom[atom]['Z']
+A = Atom[atom]['A']
 
 pPb_cross_section = sig.Sigma(proton,Pb,s,Z,A)
 
@@ -290,11 +292,11 @@ plt.ylim(0.8,1.1)
 # plt.xlim(-4,4)
 plot_usuals(s1=f_size,s2=f_size,loca = 'lower right')
 ax.set_aspect(1.0/ax.get_data_ratio(), adjustable='box')
-plt.text(0.15, 0.9, proton + " p-Pb", horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize=f_size-a)
+plt.text(0.15, 0.9, proton + " p-"+atom, horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize=f_size-a)
 plt.text(0.1, 0.2, r'$\sqrt{s} =$'+str(rs/1000) +r' $TeV$', horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize=f_size)
 plt.text(0.1, 0.1, r'$p_\bot =$'+str(p_T) +r' $GeV$', horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize=f_size)
 plt.tight_layout()
-plt.savefig(os.path.join(plots_dir, 'RpA_'+str(rs)+'GeV_'+convention+str(p_T)+'GeV.pdf'),bbox_inches="tight")
+plt.savefig(os.path.join(plots_dir, 'RpA_'+str(rs)+'GeV_Z'+str(Z)+'_A'+str(A)+convention+str(p_T)+'GeV.pdf'),bbox_inches="tight")
 plt.show()
 plt.close()
 

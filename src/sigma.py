@@ -49,6 +49,11 @@ particle = {
 	"h0": {"id": 25, "charge": 0},												# Higgs boson
 }
 
+Atom ={ # Add little by little the nuclei needed
+	'Pb': {'Z':82 ,'A':208} ,
+	'Au': {'Z':79,'A':197}
+}
+
 id_to_charge = {v["id"]: v["charge"] for v in particle.values()}
 
 def charge(particle_id):
@@ -153,9 +158,9 @@ def min_max(ys):
 
 # Conveniance objects
 Switch = {																		# To convert in LaTeX for plots
-	'dp_t' : (r'$dp_\bot$',r'$pb/GeV$'),
-	'd2p_t' : (r'$d^2p_\bot$',r'$pb/GeV^2$'),
-	'dp_t2' : (r'$dp_\bot^2$',r'$pb/GeV^2$'),
+	'dp_t' : (r'd$p_\bot$',r'(pb/GeV)'),
+	'd2p_t' : (r'd$^2p_\bot$',r'(pb/GeV$^2$)'),
+	'dp_t2' : (r'd$p_\bot^2$',r'(pb/GeV$^2$)'),
 	}
 
 Switch_fact={
@@ -980,7 +985,7 @@ class Sigma:
 		else:
 			return self.sigma_qbarq_dy
 	
-	def dsimga_all_dy(self,x_T,num,mu_factor=1,mu_f_factor=1,iso ='p',n_f=3,is_pp = False,switch= 'dp_t'):
+	def dsimga_all_dy(self,x_T,num,mu_factor=1,mu_f_factor=1,iso ='p',n_f=3,is_pp = False,switch= 'dp_t',l = False):
 		'''Return all cross section rapidity dependant components seperately,
 		and their integration uncertainties with:
 		- x_T = 2*p_T/√s ,p_T the transverse momentum
@@ -990,13 +995,19 @@ class Sigma:
 		- n_f the number of flavours (=3 by default)
 		- is_pp a booleen (=False by default) to tell the collision type
 		- switch the convention of p_T integration (= 'dp_t' by default)
+		- l just changes the order to have first the FCEL sensitives cross section
 		as :
-		[qG,Gq,qqbar,qbarq] with e.g. qG = (sigma_qG_dy, I_uncertainties_qG_dy)'''
+		[qG,Gq,qqbar,qbarq]
+		(or [qqbar,qbarq,Gq,qG] for l = True)
+		with e.g. qG = (sigma_qG_dy, I_uncertainties_qG_dy)'''
 		qG = self.dsigma_qG_dy(x_T,num,mu_factor,mu_f_factor,n_f,is_pp, switch)
 		Gq = self.dsigma_Gq_dy(x_T,num,mu_factor,mu_f_factor,iso,n_f,is_pp ,switch)
 		qqbar = self.dsigma_qqbar_dy(x_T,num,mu_factor,mu_f_factor,iso,n_f,is_pp ,switch)
 		qbarq = self.dsigma_qbarq_dy(x_T,num,mu_factor,mu_f_factor,iso,n_f,is_pp ,switch)
-		return[qG,Gq,qqbar,qbarq]
+		if l:
+			return [qqbar,qbarq,Gq,qG]
+		else :
+			return[qG,Gq,qqbar,qbarq]
 		
 	def dsigma_FCELG_dy(self,x_T,num,mu_factor=1,mu_f_factor=1,iso ='p',n_f=3,is_pp = False,switch= 'dp_t'):
 		'''Return the components of the total cross section that contribute to
@@ -1143,7 +1154,7 @@ class Sigma:
 		else:
 			return self.sigma_qbarq_dy_xi
 	
-	def dsimga_all_dy_xi(self,x_T,xi,num,mu_factor=1,mu_f_factor=1,iso ='p',n_f=3,is_pp = False,switch= 'dp_t'):
+	def dsimga_all_dy_xi(self,x_T,xi,num,mu_factor=1,mu_f_factor=1,iso ='p',n_f=3,is_pp = False,switch= 'dp_t',l = False):
 		'''Return all cross section rapidity dependant components seperately,
 		with:
 		- x_T = 2*p_T/√s ,p_T the transverse momentum
@@ -1154,13 +1165,18 @@ class Sigma:
 		- n_f the number of flavours (=3 by default)
 		- is_pp a booleen (=False by default) to tell the collision type
 		- switch the convention of p_T integration (= 'dp_t' by default)
+		- l just changes the order to have first the FCEL sensitives cross section
 		as :
-		[qG,Gq,qqbar,qbarq]'''
+		[qG,Gq,qqbar,qbarq]
+		(or [qqbar,qbarq,Gq,R_qG] for l = True)'''
 		qG = self.dsigma_qG_dy_xi(x_T,xi,num,mu_factor,mu_f_factor,n_f,is_pp, switch)
 		Gq = self.dsigma_Gq_dy_xi(x_T,xi,num,mu_factor,mu_f_factor,iso,n_f,is_pp ,switch)
 		qqbar = self.dsigma_qqbar_dy_xi(x_T,xi,num,mu_factor,mu_f_factor,iso,n_f,is_pp ,switch)
 		qbarq = self.dsigma_qbarq_dy_xi(x_T,xi,num,mu_factor,mu_f_factor,iso,n_f,is_pp ,switch)
-		return[qG,Gq,qqbar,qbarq]
+		if l:
+			return [qqbar,qbarq,Gq,qG]
+		else:
+			return[qG,Gq,qqbar,qbarq]
 		
 	def dsigma_FCELG_dy_xi(self,x_T,xi,num,mu_factor=1,mu_f_factor=1,iso ='p',n_f=3,is_pp = False,switch= 'dp_t'):
 		''''Return the components of the total cross section that contribute to
@@ -2688,7 +2704,7 @@ class Sigma:
 		return [Ucen,[Uplus,Uminus],[Uplus_q,Uminus_q,Uplus_mu,Uminus_mu,Uplus_pdf,Uminus_pdf]]
 	
 	def R_pp_All_dy(self,x_T,num,q0,mu_factor=1,mu_f_factor=1,iso='p',n_f=3,switch ='dp_t',eps = 1e-15,var_int='nu'):
-		'''Return the ratios of the shifted sigma_l (l = 1,2,3,4 see proceedings) 
+		'''Return the ratios of the shifted sigma_l (l = 1,2,3,4 see proceedings arXiv:2512.02640) 
 		over sigma_l with:
 		- x_T = 2*p_T/√s ,p_T the transverse momentum
 		- num the member of the pdf set
