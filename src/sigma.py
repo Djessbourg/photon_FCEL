@@ -125,8 +125,8 @@ Xi_dict ={ #dictionary of the Xi(xi,b) expression in dsigma/dxi for the massive 
 
 def Y_list(x_T):
 	'''Return a numpy linespace array of N_y rapidities given x_T'''
-	y_min = max(-np.log(2./x_T),-6)
-	y_max = min(np.log(2./x_T),6)
+	y_min = max(-np.log(2./x_T)+epsilon,-6)
+	y_max = min(np.log(2./x_T)-epsilon,6)
 	Y = np.linspace(y_min,y_max,N_y)
 	return Y
 
@@ -2388,13 +2388,11 @@ class Sigma:
 		mu_val =[]
 		q0_cen =q0_list[0]
 		num_cen = 0
-		pdf_val = []
 		print('Central value')
 		FCEL_cen, FCEG_cen = self.FCEL_G_integration_dy(x_T,num_cen,mu_factor= mu_factor,mu_f_factor=mu_f_factor,iso=iso,n_f=n_f,switch =switch,eps = eps,var_int=var_int,q0=q0_cen)
 		sigma_pp_cen,err_pp_cen = self.dsigma_tot_dy(x_T,num_cen, mu_factor= mu_factor,mu_f_factor=mu_f_factor,iso =iso,n_f=n_f,is_pp=True,switch =switch)
 		Ucen = np.array((FCEL_cen[0]+FCEG_cen[0])/sigma_pp_cen)
 		Uplus_q,Uminus_q,Uplus_mu,Uminus_mu= np.zeros_like(Y),np.zeros_like(Y), np.zeros_like(Y),np.zeros_like(Y)
-		pdf_val.append((FCEL_cen[0]+FCEG_cen[0])/sigma_pp_cen)
 		if 'q0' in var_err:
 			for q in q_list:
 				print('q0 = '+str(q))
@@ -2414,7 +2412,7 @@ class Sigma:
 			print('Computation on pdf set')
 			for j,y in enumerate(Y):
 				print('y = '+str(y)+'| '+str(j+1)+'/'+str(N_y))
-				y_pdf_val =[]
+				y_pdf_val =[Ucen[j]]
 				for i in range(1,p_set.size):
 					FCEL_pdf, FCEG_pdf = self.FCEL_G_integration_dydpt(y,x_T,i,mu_factor= mu_factor,mu_f_factor=mu_f_factor,iso=iso,n_f=n_f,switch =switch,eps = eps,var_int=var_int,q0=q0_cen)
 					sigma_pp_pdf , err_pp_pdf = self.dsigma_tot_dydpt(y,x_T,i,mu_factor,mu_f_factor,iso = iso,n_f=n_f,is_pp=True,switch =switch)

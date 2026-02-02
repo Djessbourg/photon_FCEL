@@ -19,20 +19,26 @@ from src import sigma as sig
 from src import Collision
 
 ### Initialisation of a sigma object ###
+# rs = 200
 rs = 8800
 s = (rs)**2 # CM energy in Gev2
-p = "nNNPDF30_nlo_as_0118_p"
+proton = "NNPDF40_lo_as_01180"
 Pb = "nNNPDF30_nlo_as_0118_A208_Z82"
-Z = 82.
-A = 208.
+# Lead 
+Z = 82
+A = 208
+# Gold
+# Z = 79
+# A = 197
 
-pPb_cross_section = sig.Sigma(p,Pb,s,Z,A)
+pPb_cross_section = sig.Sigma(proton,Pb,s,Z,A)
 
 d = sig.Switch
 
 ### first atempts to reproduce last results ###
-p_T = 10
-p_T2= 15
+# p_T = 2
+p_T = 5
+p_T2= 10
 y = -4
 y2= 0
 y3= 4
@@ -41,7 +47,7 @@ x_T2 = (2.0*p_T2)/rs
 num = 0 																# The central set 
 
 # A plot for sigma tot and its components
-f_size = 15
+f_size = 17
 alph = 0.3
 convention = 'd2p_t'
 col_type = 'pp'
@@ -243,49 +249,54 @@ def plot_usuals(n=1,s1=f_size,s2=f_size,loca = 'best'):
 ### Ratios ###
 # FCEL/G
 # y dependant
-err ='q0,mu'
+err ='q0,mu,pdf'
 RpA_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), 'RpA_dir')) # the direcory to save data from this file
-a=3
+a=2
 
-# f_name = 'RpA_'+str(rs)+'GeV_'+convention+str(p_T)+'GeV.txt'
-# if os.path.exists(os.path.join(RpA_dir,f_name)):
-# 	print(f"The file '{f_name}' already exists. It is loaded.")
-# 	Rpa ,Rpa_plus,Rpa_minus, Rpa_plus_q,Rpa_minus_q,Rpa_plus_mu,Rpa_minus_mu,Rpa_plus_pdf,Rpas_minus_pdf = np.loadtxt(os.path.join(RpA_dir,f_name))
-# else:
-# 	print("The file does not exists")
-# 	Rpa ,err_Rpa, err_var_Rpa = pPb_cross_section.Uncertainties_RpA_dy(x_T,switch = convention,var_err= err)
-# 	Rpa_plus,Rpa_minus = err_Rpa[0],err_Rpa[1]
-# 	Rpa_plus_q,Rpa_minus_q,Rpa_plus_mu,Rpa_minus_mu,Rpa_plus_pdf,Rpas_minus_pdf= err_var_Rpa[0],err_var_Rpa[1],err_var_Rpa[2],err_var_Rpa[3],err_var_Rpa[4],err_var_Rpa[5]
-# 	r = [Rpa,Rpa_plus,Rpa_minus,Rpa_plus_q,Rpa_minus_q,Rpa_plus_mu,Rpa_minus_mu,Rpa_plus_pdf,Rpas_minus_pdf]
-# 	np.savetxt(os.path.join(RpA_dir,f_name), r)
-# 	print(f" '{f_name}' has been created")
+f_name = 'RpA_'+str(rs)+'GeV_Z'+str(Z)+'_A'+str(A)+convention+str(p_T)+'GeV.txt'
+if os.path.exists(os.path.join(RpA_dir,f_name)):
+	print(f"The file '{f_name}' already exists. It is loaded.")
+	Rpa ,Rpa_plus,Rpa_minus, Rpa_plus_q,Rpa_minus_q,Rpa_plus_mu,Rpa_minus_mu,Rpa_plus_pdf,Rpa_minus_pdf = np.loadtxt(os.path.join(RpA_dir,f_name))
+else:
+	print("The file does not exists")
+	Rpa ,err_Rpa, err_var_Rpa = pPb_cross_section.Uncertainties_RpA_dy(x_T,switch = convention,var_err= err)
+	Rpa_plus,Rpa_minus = err_Rpa[0],err_Rpa[1]
+	Rpa_plus_q,Rpa_minus_q,Rpa_plus_mu,Rpa_minus_mu,Rpa_plus_pdf,Rpa_minus_pdf= err_var_Rpa[0],err_var_Rpa[1],err_var_Rpa[2],err_var_Rpa[3],err_var_Rpa[4],err_var_Rpa[5]
+	r = [Rpa,Rpa_plus,Rpa_minus,Rpa_plus_q,Rpa_minus_q,Rpa_plus_mu,Rpa_minus_mu,Rpa_plus_pdf,Rpa_minus_pdf]
+	np.savetxt(os.path.join(RpA_dir,f_name), r)
+	print(f" '{f_name}' has been created")
 
-# Y = sig.Y_list(x_T)
+Y = sig.Y_list(x_T)
 
-# m_mu,M_mu = sig.min_max([Rpa+Rpa_plus_mu,Rpa-Rpa_minus_mu,Rpa])
-# m_q,M_q = sig.min_max([Rpa+Rpa_plus_q,Rpa-Rpa_minus_q,Rpa])
+m_mu,M_mu = sig.min_max([Rpa+Rpa_plus_mu,Rpa-Rpa_minus_mu,Rpa])
+m_q,M_q = sig.min_max([Rpa+Rpa_plus_q,Rpa-Rpa_minus_q,Rpa])
+m_pdf, M_pdf = sig.min_max([Rpa+Rpa_plus_pdf,Rpa-Rpa_minus_pdf])
 
-# fig, ax = plt.subplots(constrained_layout=True)
-# ax.xaxis.set_minor_locator(MultipleLocator(1))
-# ax.xaxis.set_major_locator(MultipleLocator(2))
-# plt.fill_between(Y,m_mu,M_mu,color = 'blue',alpha = alph,label=r'$\sigma_\mu $')
-# plt.fill_between(Y,m_q,M_q,color='red', alpha=alph,label=r'$\sigma_{\hat{q}_0}$')
-# plt.axhline(y=1, color='grey',alpha=alph)
-# plt.plot(Y,Rpa,color='blue')
-# #plt.grid()
-# plt.legend(loc='lower right',frameon =False,fontsize=f_size-a)
-# plt.xlabel('y')
-# # plt.ylim(bottom= 0.9,top = 1.05)
-# plt.ylabel(r'$R_{pA}^{dir}$',fontsize= f_size-a)
-# plt.ylim(0.8,1.1)
-# plt.xlabel('y',fontsize=f_size-a)
-# plot_usuals(s1=f_size-a,s2=f_size-a,loca = 'lower right')
-# ax.set_aspect(1.0/ax.get_data_ratio(), adjustable='box')
-# plt.text(0.1, 0.1, r'$p_\bot =$'+str(p_T) +r' $GeV$', horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize=f_size-a)
-# plt.tight_layout()
-# plt.savefig(os.path.join(plots_dir, 'RpA_'+str(rs)+'GeV_'+convention+str(p_T)+'GeV.pdf'),bbox_inches="tight")
-# plt.show()
-# plt.close()
+fig, ax = plt.subplots(constrained_layout=True)
+ax.xaxis.set_minor_locator(MultipleLocator(1))
+ax.xaxis.set_major_locator(MultipleLocator(2))
+plt.fill_between(Y,m_mu,M_mu,color = 'blue',alpha = alph,label=r'$\sigma_\mu $')
+plt.fill_between(Y,m_q,M_q,color='red', alpha=alph,label=r'$\sigma_{\hat{q}_0}$')
+plt.fill_between(Y,m_pdf,M_pdf,color='green', alpha=alph,label=r'$\sigma_{pdf}$')
+plt.plot(Y,Rpa+Rpa_plus,color = 'blue', alpha = 0.5)
+plt.plot(Y,Rpa-Rpa_minus,color = 'blue', alpha = 0.5)
+plt.axhline(y=1, color='grey',alpha=alph)
+plt.plot(Y,Rpa,color='blue')
+
+plt.legend(loc='lower right',frameon =False,fontsize=f_size-a)
+plt.xlabel('y',fontsize=f_size-a)
+plt.ylabel(r'$R_{pA}^{dir}$',fontsize= f_size)
+plt.ylim(0.8,1.1)
+# plt.xlim(-4,4)
+plot_usuals(s1=f_size,s2=f_size,loca = 'lower right')
+ax.set_aspect(1.0/ax.get_data_ratio(), adjustable='box')
+plt.text(0.15, 0.9, proton + " p-Pb", horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize=f_size-a)
+plt.text(0.1, 0.2, r'$\sqrt{s} =$'+str(rs/1000) +r' $TeV$', horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize=f_size)
+plt.text(0.1, 0.1, r'$p_\bot =$'+str(p_T) +r' $GeV$', horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize=f_size)
+plt.tight_layout()
+plt.savefig(os.path.join(plots_dir, 'RpA_'+str(rs)+'GeV_'+convention+str(p_T)+'GeV.pdf'),bbox_inches="tight")
+plt.show()
+plt.close()
 
 # f_name = 'RpA_'+str(rs)+'GeV_'+convention+str(p_T2)+'GeV.txt'
 # if os.path.exists(os.path.join(RpA_dir,f_name)):
@@ -328,114 +339,114 @@ a=3
 
 
 #pt dependant
-f_name = 'RpA_'+str(rs)+'GeV_'+convention+str(y)+'.txt'
-if os.path.exists(os.path.join(RpA_dir,f_name)):
-	print(f"The file '{f_name}' already exists. It is loaded.")
-	Rpa ,Rpa_plus,Rpa_minus, Rpa_plus_q,Rpa_minus_q,Rpa_plus_mu,Rpa_minus_mu,Rpa_plus_pdf,Rpas_minus_pdf = np.loadtxt(os.path.join(RpA_dir,f_name))
-else:
-	print("The file does not exists")
-	Rpa ,err_Rpa, err_var_Rpa = pPb_cross_section.Uncertainties_RpA_dpt(y,switch = convention,var_err= err,)
-	Rpa_plus,Rpa_minus = err_Rpa[0],err_Rpa[1]
-	Rpa_plus_q,Rpa_minus_q,Rpa_plus_mu,Rpa_minus_mu,Rpa_plus_pdf,Rpas_minus_pdf= err_var_Rpa[0],err_var_Rpa[1],err_var_Rpa[2],err_var_Rpa[3],err_var_Rpa[4],err_var_Rpa[5]
-	r = [Rpa,Rpa_plus,Rpa_minus,Rpa_plus_q,Rpa_minus_q,Rpa_plus_mu,Rpa_minus_mu,Rpa_plus_pdf,Rpas_minus_pdf]
-	np.savetxt(os.path.join(RpA_dir,f_name), r)
-	print(f" '{f_name}' has been created")
+# f_name = 'RpA_'+str(rs)+'GeV_'+convention+str(y)+'.txt'
+# if os.path.exists(os.path.join(RpA_dir,f_name)):
+# 	print(f"The file '{f_name}' already exists. It is loaded.")
+# 	Rpa ,Rpa_plus,Rpa_minus, Rpa_plus_q,Rpa_minus_q,Rpa_plus_mu,Rpa_minus_mu,Rpa_plus_pdf,Rpas_minus_pdf = np.loadtxt(os.path.join(RpA_dir,f_name))
+# else:
+# 	print("The file does not exists")
+# 	Rpa ,err_Rpa, err_var_Rpa = pPb_cross_section.Uncertainties_RpA_dpt(y,switch = convention,var_err= err,)
+# 	Rpa_plus,Rpa_minus = err_Rpa[0],err_Rpa[1]
+# 	Rpa_plus_q,Rpa_minus_q,Rpa_plus_mu,Rpa_minus_mu,Rpa_plus_pdf,Rpas_minus_pdf= err_var_Rpa[0],err_var_Rpa[1],err_var_Rpa[2],err_var_Rpa[3],err_var_Rpa[4],err_var_Rpa[5]
+# 	r = [Rpa,Rpa_plus,Rpa_minus,Rpa_plus_q,Rpa_minus_q,Rpa_plus_mu,Rpa_minus_mu,Rpa_plus_pdf,Rpas_minus_pdf]
+# 	np.savetxt(os.path.join(RpA_dir,f_name), r)
+# 	print(f" '{f_name}' has been created")
 
-P_T = pPb_cross_section.P_T_list(y)
+# P_T = pPb_cross_section.P_T_list(y)
 
-m_mu,M_mu = sig.min_max([Rpa+Rpa_plus_mu,Rpa-Rpa_minus_mu,Rpa])
-m_q,M_q = sig.min_max([Rpa+Rpa_plus_q,Rpa-Rpa_minus_q,Rpa])
-fig, ax = plt.subplots(constrained_layout=True)
-ax.xaxis.set_minor_locator(MultipleLocator(1))
-ax.xaxis.set_major_locator(MultipleLocator(5))
-plt.fill_between(P_T,m_mu,M_mu,color = 'blue',alpha = alph,label=r'$\sigma_\mu $')
-plt.fill_between(P_T,m_q,M_q,color='red', alpha=alph,label=r'$\sigma_{\hat{q}_0}$')
-plt.axhline(y=1, color='grey',alpha=alph)
-plt.plot(P_T,Rpa,color='blue')
-plt.legend(loc='lower right',frameon =False,fontsize=f_size-a)
-plt.ylabel(r'$R_{pA}^{dir}$',fontsize= f_size-a)
-plt.ylim(0.8,1.1)
-plt.xlabel(r'$p_\bot$ (GeV)',fontsize=f_size-a)
-plot_usuals(s1=f_size-a,s2=f_size-a,loca = 'lower right')
-ax.set_aspect(1.0/ax.get_data_ratio(), adjustable='box')
-plt.text(0.1, 0.1, r'$y =$ '+str(y), horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize=f_size-a)
-plt.tight_layout()
-plt.savefig(os.path.join(plots_dir, 'RpA_'+str(rs)+'GeV_'+'y'+str(y)+'.pdf'))
-plt.show()
-plt.close()
+# m_mu,M_mu = sig.min_max([Rpa+Rpa_plus_mu,Rpa-Rpa_minus_mu,Rpa])
+# m_q,M_q = sig.min_max([Rpa+Rpa_plus_q,Rpa-Rpa_minus_q,Rpa])
+# fig, ax = plt.subplots(constrained_layout=True)
+# ax.xaxis.set_minor_locator(MultipleLocator(1))
+# ax.xaxis.set_major_locator(MultipleLocator(5))
+# plt.fill_between(P_T,m_mu,M_mu,color = 'blue',alpha = alph,label=r'$\sigma_\mu $')
+# plt.fill_between(P_T,m_q,M_q,color='red', alpha=alph,label=r'$\sigma_{\hat{q}_0}$')
+# plt.axhline(y=1, color='grey',alpha=alph)
+# plt.plot(P_T,Rpa,color='blue')
+# plt.legend(loc='lower right',frameon =False,fontsize=f_size-a)
+# plt.ylabel(r'$R_{pA}^{dir}$',fontsize= f_size-a)
+# plt.ylim(0.8,1.1)
+# plt.xlabel(r'$p_\bot$ (GeV)',fontsize=f_size-a)
+# plot_usuals(s1=f_size-a,s2=f_size-a,loca = 'lower right')
+# ax.set_aspect(1.0/ax.get_data_ratio(), adjustable='box')
+# plt.text(0.1, 0.1, r'$y =$ '+str(y), horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize=f_size-a)
+# plt.tight_layout()
+# plt.savefig(os.path.join(plots_dir, 'RpA_'+str(rs)+'GeV_'+'y'+str(y)+'.pdf'))
+# plt.show()
+# plt.close()
 
 
-f_name = 'RpA_'+str(rs)+'GeV_'+convention+str(y2)+'.txt'
-if os.path.exists(os.path.join(RpA_dir,f_name)):
-	print(f"The file '{f_name}' already exists. It is loaded.")
-	Rpa ,Rpa_plus,Rpa_minus, Rpa_plus_q,Rpa_minus_q,Rpa_plus_mu,Rpa_minus_mu,Rpa_plus_pdf,Rpas_minus_pdf = np.loadtxt(os.path.join(RpA_dir,f_name))
-else:
-	print("The file does not exists")
-	Rpa ,err_Rpa, err_var_Rpa = pPb_cross_section.Uncertainties_RpA_dpt(y2,switch = convention,var_err= err,)
-	Rpa_plus,Rpa_minus = err_Rpa[0],err_Rpa[1]
-	Rpa_plus_q,Rpa_minus_q,Rpa_plus_mu,Rpa_minus_mu,Rpa_plus_pdf,Rpas_minus_pdf= err_var_Rpa[0],err_var_Rpa[1],err_var_Rpa[2],err_var_Rpa[3],err_var_Rpa[4],err_var_Rpa[5]
-	r = [Rpa,Rpa_plus,Rpa_minus,Rpa_plus_q,Rpa_minus_q,Rpa_plus_mu,Rpa_minus_mu,Rpa_plus_pdf,Rpas_minus_pdf]
-	np.savetxt(os.path.join(RpA_dir,f_name), r)
-	print(f" '{f_name}' has been created")
+# f_name = 'RpA_'+str(rs)+'GeV_'+convention+str(y2)+'.txt'
+# if os.path.exists(os.path.join(RpA_dir,f_name)):
+# 	print(f"The file '{f_name}' already exists. It is loaded.")
+# 	Rpa ,Rpa_plus,Rpa_minus, Rpa_plus_q,Rpa_minus_q,Rpa_plus_mu,Rpa_minus_mu,Rpa_plus_pdf,Rpas_minus_pdf = np.loadtxt(os.path.join(RpA_dir,f_name))
+# else:
+# 	print("The file does not exists")
+# 	Rpa ,err_Rpa, err_var_Rpa = pPb_cross_section.Uncertainties_RpA_dpt(y2,switch = convention,var_err= err,)
+# 	Rpa_plus,Rpa_minus = err_Rpa[0],err_Rpa[1]
+# 	Rpa_plus_q,Rpa_minus_q,Rpa_plus_mu,Rpa_minus_mu,Rpa_plus_pdf,Rpas_minus_pdf= err_var_Rpa[0],err_var_Rpa[1],err_var_Rpa[2],err_var_Rpa[3],err_var_Rpa[4],err_var_Rpa[5]
+# 	r = [Rpa,Rpa_plus,Rpa_minus,Rpa_plus_q,Rpa_minus_q,Rpa_plus_mu,Rpa_minus_mu,Rpa_plus_pdf,Rpas_minus_pdf]
+# 	np.savetxt(os.path.join(RpA_dir,f_name), r)
+# 	print(f" '{f_name}' has been created")
 	
-P_T = pPb_cross_section.P_T_list(y2)
+# P_T = pPb_cross_section.P_T_list(y2)
 
-m_mu,M_mu = sig.min_max([Rpa+Rpa_plus_mu,Rpa-Rpa_minus_mu,Rpa])
-m_q,M_q = sig.min_max([Rpa+Rpa_plus_q,Rpa-Rpa_minus_q,Rpa])
-fig, ax = plt.subplots(constrained_layout=True)
-ax.xaxis.set_minor_locator(MultipleLocator(1))
-ax.xaxis.set_major_locator(MultipleLocator(5))
-plt.fill_between(P_T,m_mu,M_mu,color = 'blue',alpha = alph,label=r'$\sigma_\mu $')
-plt.fill_between(P_T,m_q,M_q,color='red', alpha=alph,label=r'$\sigma_{\hat{q}_0}$')
-plt.axhline(y=1, color='grey',alpha=alph)
-plt.plot(P_T,Rpa,color='blue')
-plt.legend(loc='lower right',frameon =False,fontsize=f_size-a)
-plt.ylabel(r'$R_{pA}^{dir}$',fontsize= f_size-a)
-plt.ylim(0.8,1.1)
-plt.xlabel(r'$p_\bot$ (GeV)',fontsize=f_size-a)
-plot_usuals(s1=f_size-a,s2=f_size-a,loca = 'lower right')
-ax.set_aspect(1.0/ax.get_data_ratio(), adjustable='box')
-plt.text(0.1, 0.1, r'$y =$ '+str(y2), horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize=f_size-a)
-plt.tight_layout()
-plt.savefig(os.path.join(plots_dir, 'RpA_'+str(rs)+'GeV_'+'y'+str(y2)+'.pdf'))
-plt.show()
-plt.close()
+# m_mu,M_mu = sig.min_max([Rpa+Rpa_plus_mu,Rpa-Rpa_minus_mu,Rpa])
+# m_q,M_q = sig.min_max([Rpa+Rpa_plus_q,Rpa-Rpa_minus_q,Rpa])
+# fig, ax = plt.subplots(constrained_layout=True)
+# ax.xaxis.set_minor_locator(MultipleLocator(1))
+# ax.xaxis.set_major_locator(MultipleLocator(5))
+# plt.fill_between(P_T,m_mu,M_mu,color = 'blue',alpha = alph,label=r'$\sigma_\mu $')
+# plt.fill_between(P_T,m_q,M_q,color='red', alpha=alph,label=r'$\sigma_{\hat{q}_0}$')
+# plt.axhline(y=1, color='grey',alpha=alph)
+# plt.plot(P_T,Rpa,color='blue')
+# plt.legend(loc='lower right',frameon =False,fontsize=f_size-a)
+# plt.ylabel(r'$R_{pA}^{dir}$',fontsize= f_size-a)
+# plt.ylim(0.8,1.1)
+# plt.xlabel(r'$p_\bot$ (GeV)',fontsize=f_size-a)
+# plot_usuals(s1=f_size-a,s2=f_size-a,loca = 'lower right')
+# ax.set_aspect(1.0/ax.get_data_ratio(), adjustable='box')
+# plt.text(0.1, 0.1, r'$y =$ '+str(y2), horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize=f_size-a)
+# plt.tight_layout()
+# plt.savefig(os.path.join(plots_dir, 'RpA_'+str(rs)+'GeV_'+'y'+str(y2)+'.pdf'))
+# plt.show()
+# plt.close()
 
-f_name = 'RpA_'+str(rs)+'GeV_'+convention+str(y3)+'.txt'
-if os.path.exists(os.path.join(RpA_dir,f_name)):
-	print(f"The file '{f_name}' already exists. It is loaded.")
-	Rpa ,Rpa_plus,Rpa_minus, Rpa_plus_q,Rpa_minus_q,Rpa_plus_mu,Rpa_minus_mu,Rpa_plus_pdf,Rpas_minus_pdf = np.loadtxt(os.path.join(RpA_dir,f_name))
-else:
-	print("The file does not exists")
-	Rpa ,err_Rpa, err_var_Rpa = pPb_cross_section.Uncertainties_RpA_dpt(y3,switch = convention,var_err= err,)
-	Rpa_plus,Rpa_minus = err_Rpa[0],err_Rpa[1]
-	Rpa_plus_q,Rpa_minus_q,Rpa_plus_mu,Rpa_minus_mu,Rpa_plus_pdf,Rpas_minus_pdf= err_var_Rpa[0],err_var_Rpa[1],err_var_Rpa[2],err_var_Rpa[3],err_var_Rpa[4],err_var_Rpa[5]
-	r = [Rpa,Rpa_plus,Rpa_minus,Rpa_plus_q,Rpa_minus_q,Rpa_plus_mu,Rpa_minus_mu,Rpa_plus_pdf,Rpas_minus_pdf]
-	np.savetxt(os.path.join(RpA_dir,f_name), r)
-	print(f" '{f_name}' has been created")
+# f_name = 'RpA_'+str(rs)+'GeV_'+convention+str(y3)+'.txt'
+# if os.path.exists(os.path.join(RpA_dir,f_name)):
+# 	print(f"The file '{f_name}' already exists. It is loaded.")
+# 	Rpa ,Rpa_plus,Rpa_minus, Rpa_plus_q,Rpa_minus_q,Rpa_plus_mu,Rpa_minus_mu,Rpa_plus_pdf,Rpas_minus_pdf = np.loadtxt(os.path.join(RpA_dir,f_name))
+# else:
+# 	print("The file does not exists")
+# 	Rpa ,err_Rpa, err_var_Rpa = pPb_cross_section.Uncertainties_RpA_dpt(y3,switch = convention,var_err= err,)
+# 	Rpa_plus,Rpa_minus = err_Rpa[0],err_Rpa[1]
+# 	Rpa_plus_q,Rpa_minus_q,Rpa_plus_mu,Rpa_minus_mu,Rpa_plus_pdf,Rpas_minus_pdf= err_var_Rpa[0],err_var_Rpa[1],err_var_Rpa[2],err_var_Rpa[3],err_var_Rpa[4],err_var_Rpa[5]
+# 	r = [Rpa,Rpa_plus,Rpa_minus,Rpa_plus_q,Rpa_minus_q,Rpa_plus_mu,Rpa_minus_mu,Rpa_plus_pdf,Rpas_minus_pdf]
+# 	np.savetxt(os.path.join(RpA_dir,f_name), r)
+# 	print(f" '{f_name}' has been created")
 	
-P_T = pPb_cross_section.P_T_list(y3)
+# P_T = pPb_cross_section.P_T_list(y3)
 
-m_mu,M_mu = sig.min_max([Rpa+Rpa_plus_mu,Rpa-Rpa_minus_mu,Rpa])
-m_q,M_q = sig.min_max([Rpa+Rpa_plus_q,Rpa-Rpa_minus_q,Rpa])
-fig, ax = plt.subplots(constrained_layout=True)
-ax.xaxis.set_minor_locator(MultipleLocator(1))
-ax.xaxis.set_major_locator(MultipleLocator(5))
-plt.fill_between(P_T,m_mu,M_mu,color = 'blue',alpha = alph,label=r'$\sigma_\mu $')
-plt.fill_between(P_T,m_q,M_q,color='red', alpha=alph,label=r'$\sigma_{\hat{q}_0}$')
-plt.axhline(y=1, color='grey',alpha=alph)
-plt.plot(P_T,Rpa,color='blue')
-plt.legend(loc='lower right',frameon =False,fontsize=f_size-a)
-plt.ylabel(r'$R_{pA}^{dir}$',fontsize= f_size-a)
-plt.ylim(0.8,1.1)
-plt.xlabel(r'$p_\bot$ (GeV)',fontsize=f_size-a)
-plot_usuals(s1=f_size-a,s2=f_size-a,loca = 'lower right')
-ax.set_aspect(1.0/ax.get_data_ratio(), adjustable='box')
-plt.text(0.1, 0.1, r'$y =$ '+str(y3), horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize=f_size-a)
-plt.tight_layout()
-plt.savefig(os.path.join(plots_dir, 'RpA_'+str(rs)+'GeV_'+'y'+str(y3)+'.pdf'))
-plt.show()
-plt.close()
+# m_mu,M_mu = sig.min_max([Rpa+Rpa_plus_mu,Rpa-Rpa_minus_mu,Rpa])
+# m_q,M_q = sig.min_max([Rpa+Rpa_plus_q,Rpa-Rpa_minus_q,Rpa])
+# fig, ax = plt.subplots(constrained_layout=True)
+# ax.xaxis.set_minor_locator(MultipleLocator(1))
+# ax.xaxis.set_major_locator(MultipleLocator(5))
+# plt.fill_between(P_T,m_mu,M_mu,color = 'blue',alpha = alph,label=r'$\sigma_\mu $')
+# plt.fill_between(P_T,m_q,M_q,color='red', alpha=alph,label=r'$\sigma_{\hat{q}_0}$')
+# plt.axhline(y=1, color='grey',alpha=alph)
+# plt.plot(P_T,Rpa,color='blue')
+# plt.legend(loc='lower right',frameon =False,fontsize=f_size-a)
+# plt.ylabel(r'$R_{pA}^{dir}$',fontsize= f_size-a)
+# plt.ylim(0.8,1.1)
+# plt.xlabel(r'$p_\bot$ (GeV)',fontsize=f_size-a)
+# plot_usuals(s1=f_size-a,s2=f_size-a,loca = 'lower right')
+# ax.set_aspect(1.0/ax.get_data_ratio(), adjustable='box')
+# plt.text(0.1, 0.1, r'$y =$ '+str(y3), horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize=f_size-a)
+# plt.tight_layout()
+# plt.savefig(os.path.join(plots_dir, 'RpA_'+str(rs)+'GeV_'+'y'+str(y3)+'.pdf'))
+# plt.show()
+# plt.close()
 
 # Delta Rpa q+/q-
 # y
