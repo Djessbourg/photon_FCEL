@@ -20,13 +20,16 @@ from src import Collision
 rs = 8800
 # rs = 200
 s = (rs)**2 # CM energy in Gev2
-proton = "NNPDF40_lo_as_01180"
+# proton = "nNNPDF30_nlo_as_0118_p"
+# proton = "NNPDF40_lo_as_01180"
+# proton = 'MSHT20lo_as130'
+proton = 'CT18LO'
 Pb = "nNNPDF30_nlo_as_0118_A208_Z82"
 
 atom = 'Pb'
 # atom = 'Au'
 
-Atom = sig.Atom
+Atom = sig.Atom #dictionary where we stock important atomic aspect (now just Z and A) to plot and put into file names
 
 Z = Atom[atom]['Z']
 A = Atom[atom]['A']
@@ -62,7 +65,7 @@ def plot_usuals(n=1,s1=f_size,s2=f_size,loca = 'best'):
 fig, ax = plt.subplots(constrained_layout=True)
 ax.xaxis.set_minor_locator(MultipleLocator(1))
 ax.xaxis.set_major_locator(MultipleLocator(2))
-(s1,er1),(s2,er2),(s3,er3),(s4,er4)=pPb_cross_section.dsimga_all_dy(x_T,num,is_pp=Collision(col_type),switch=convention,l=True)
+(s1,er1),(s2,er2),(s3,er3),(s4,er4)=pPb_cross_section.dsigma_all_dy(x_T,num,is_pp=Collision(col_type),switch=convention,l=True)
 stot = s1+s2+s3+s4
 
 plt.plot(Y,s1,label=r'$\ell=1$')
@@ -72,15 +75,15 @@ plt.plot(Y,s4,label=r'$\ell=4$')
 
 plt.ylabel(r'd$\sigma_{\ell}/$d$y$'+sig.Switch[convention][0]+' '+sig.Switch[convention][1],fontsize= f_size-a)
 plt.yscale('log')
-plt.ylim(0.01*min(s3),10*max(stot))
+plt.ylim(10,10**5)
 plt.xlabel('y',fontsize=f_size-a)
-plot_usuals(s1=f_size-a,s2=f_size-a,loca = 'best',n=2)
 ax.set_aspect(1.0/ax.get_data_ratio(), adjustable='box')
 plt.text(0.5, 0.95, proton + " p-"+atom, horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize=f_size-a)
 plt.text(0.5, 0.40, r'$p_\bot =$'+str(p_T) +r' GeV', horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize=f_size-a)
 plt.text(0.5, 0.50, r'$\sqrt{s} =$'+str(rs/1000) +r' TeV', horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize=f_size-a)
+plot_usuals(s1=f_size-a,s2=f_size-a,loca = 'lower center',n=2)
 plt.tight_layout()
-plt.savefig(os.path.join(plots_dir, 'sigma_all'+str(rs)+'GeV_Z'+str(Z)+'_A'+str(A)+convention+str(p_T)+'GeV.pdf'),bbox_inches="tight")
+plt.savefig(os.path.join(plots_dir, proton+'sigma_all'+str(rs)+'GeV_Z'+str(Z)+'_A'+str(A)+convention+str(p_T)+'GeV.pdf'),bbox_inches="tight")
 plt.show()
 plt.close()
 

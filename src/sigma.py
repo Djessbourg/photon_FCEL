@@ -18,7 +18,7 @@ plots_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'plots
 
 import lhapdf as lha
 import numpy as np 
-from scipy import integrate
+from scipy import (integrate,differentiate)
 try :
 	from . import Probability as p
 except ImportError:
@@ -68,7 +68,7 @@ conv_fact = pow(0.197,2)*pow(10,10)												# to convert Gev^-2 into barns
 pi = np.pi
 
 # Integration parameters
-epsilon = pow(10,-1)															# to avoid phase space borders 
+epsilon = pow(10,-15)															# to avoid phase space borders 
 N_pt = 41
 N_Xi = 1000
 N_y= 41
@@ -243,26 +243,22 @@ class Sigma:
 			p = self.p_list														# verify that the member belongs to the list
 			self.current_p_num = num
 			self.current_p = p[num]
-			return self.current_p
-		else:
-			return self.current_p
+		return self.current_p
 	
 	def pdf_A(self,num):
 		'''Redefine the current pdf of the target (nuclei) for a certain member
 		number of the set (if it is different from the current one) 
 		and return the new current nuclei pdf set'''
 		Num = self.current_A_num
-		size = self.p_set.size
+		size = self.A_set.size
 		if num < 0 or num > size:
 			raise ValueError("num should be between 0 and "+str(size))
 		if num != Num:
 			A = self.A_list 													# verify that the member belongs to the list 
 			self.current_A_num = num
 			self.current_A = A[num]
-			return self.current_A
-		else:	
-			return self.current_A
-	
+		return self.current_A
+		
 	def alpha_s_A(self,num,mu2):
 		'''return alpha_s for the nuclei at mu2'''
 		A_num = self.pdf_A(num)
@@ -878,9 +874,7 @@ class Sigma:
 				sigma.append(Int[0])
 				err_sigma.append(Int[1])
 			self.sigma_tot_dy = (np.array(sigma),np.array(err_sigma))
-			return (np.array(sigma),np.array(err_sigma))
-		else:
-			return self.sigma_tot_dy
+		return self.sigma_tot_dy
 	
 	def dsigma_qG_dy(self,x_T,num,mu_factor=1,mu_f_factor=1,n_f=3,is_pp = False,switch = 'dp_t'):
 		'''Return the list of the qG cross section rapidity dependent
@@ -903,9 +897,7 @@ class Sigma:
 				sigma.append(Int[0])
 				err_sigma.append(Int[1])
 			self.sigma_qG_dy = (np.array(sigma),np.array(err_sigma))
-			return (np.array(sigma),np.array(err_sigma))
-		else:
-			return self.sigma_qG_dy
+		return self.sigma_qG_dy
 	
 	def dsigma_Gq_dy(self,x_T,num,mu_factor=1,mu_f_factor=1,iso ='p',n_f=3,is_pp = False,switch= 'dp_t'):
 		'''Return the list of the Gq cross section rapidity dependent
@@ -985,7 +977,7 @@ class Sigma:
 		else:
 			return self.sigma_qbarq_dy
 	
-	def dsimga_all_dy(self,x_T,num,mu_factor=1,mu_f_factor=1,iso ='p',n_f=3,is_pp = False,switch= 'dp_t',l = False):
+	def dsigma_all_dy(self,x_T,num,mu_factor=1,mu_f_factor=1,iso ='p',n_f=3,is_pp = False,switch= 'dp_t',l = False):
 		'''Return all cross section rapidity dependant components seperately,
 		and their integration uncertainties with:
 		- x_T = 2*p_T/√s ,p_T the transverse momentum
@@ -1154,7 +1146,7 @@ class Sigma:
 		else:
 			return self.sigma_qbarq_dy_xi
 	
-	def dsimga_all_dy_xi(self,x_T,xi,num,mu_factor=1,mu_f_factor=1,iso ='p',n_f=3,is_pp = False,switch= 'dp_t',l = False):
+	def dsigma_all_dy_xi(self,x_T,xi,num,mu_factor=1,mu_f_factor=1,iso ='p',n_f=3,is_pp = False,switch= 'dp_t',l = False):
 		'''Return all cross section rapidity dependant components seperately,
 		with:
 		- x_T = 2*p_T/√s ,p_T the transverse momentum
@@ -2922,6 +2914,54 @@ class Sigma:
 		return [(sigma_FCEL,err_sigma_FCEL),(sigma_FCEG,err_sigma_FCEG)]
 	
 	### Other functions ###
+
+	def Rpp_Taylor_FCELG_dy(self,x_T,num,q0,mu_factor=1,mu_f_factor=1,iso='p',n_f=3,switch ='dp_t',eps = 1e-15,var_int='nu'):
+		'''Return the ratio (for real photons) of the Taylor approximation at the first order 
+		of the shifted sigma_pp in rapidity (or pn if iso = 'n') 
+		over sigma_pp (resp pn), with:
+		- x_T = 2*p_T/√s ,p_T the transverse momentum
+		- num the member of the pdf set
+		- q0 the transport coefficient
+		- mu_factor that describes mu = p_T*mu_factor (same for mu_f_factor)
+		- iso the isospin variable (='p' by default)
+		- n_f the number of flavours (=3 by default)
+		- switch the convention of p_T integration (= 'dp_t' by default)
+		- eps the minimun delta_y can value
+		- var_int (str) the integration variable (="nu" by default)'''
+		# Some useful variables
+		rs = self.rs
+		p_T = x_T*rs/2.
+		mu2 = (mu_factor*p_T)**2
+		alpha_s = self.alpha_s_p(num,mu2)
+		xi_bar = 0.5
+		C_FCEG = -1/N_c
+		C_FCEL = N_c
+		Delta_Qs = 0			# /!\ /!\ Have to think what to put here, too tired for that /!\ /!\
+		x_mean_FCEG = C_FCEG*Delta_Qs*(1-xi_bar)/p_T
+		x_mean_FCEL = C_FCEL*Delta_Qs*(1-xi_bar)/p_T
+		# Value of the 0th order for the RpA
+		R = 1 					
+		# Cross section of each process as a function of y 
+		qg = lambda y : self.dsigma_qG_dydpt(y,x_T,num,mu_factor=mu_factor,mu_f_factor=mu_f_factor,n_f=n_f,is_pp=True, switch=switch)[0]
+		gq = lambda y : self.dsigma_Gq_dydpt(y,x_T,num,mu_factor=mu_factor,mu_f_factor=mu_f_factor,iso=iso,n_f=n_f,is_pp=True, switch=switch)[0]
+		qqbar = lambda y : self.dsigma_qqbar_dydpt(y,x_T,num,mu_factor=mu_factor,mu_f_factor=mu_f_factor,iso=iso,n_f=n_f,is_pp=True, switch=switch)[0]
+		qbarq = lambda y : self.dsigma_qbarq_dydpt(y,x_T,num,mu_factor=mu_factor,mu_f_factor=mu_f_factor,iso=iso,n_f=n_f,is_pp=True, switch=switch)[0]
+		Y = Y_list(x_T)
+		# Derivatives according to y 
+		dqg = differentiate.derivative(qg,Y)
+		dgq = differentiate.derivative(gq,Y)
+		dqqbar = differentiate.derivative(qqbar,Y)
+		dqbarq = differentiate.derivative(qbarq,Y)
+		# Each term for the final result
+		Rqg  = (dqg.df-qg(Y))/qg(Y)
+		Rgq  = (dgq.df-gq(Y))/gq(Y)
+		Rqqbar = (dqqbar.df-qqbar(Y))/qqbar(Y)
+		Rqbarq = (dqbarq.dr-qbarq(Y))/qbarq(Y)
+		# FCEL and FCEG part
+		FCEL = x_mean_FCEL*(Rgq+Rqqbar+Rqbarq)
+		FCEG = x_mean_FCEG*Rqg
+		R += FCEL + FCEG
+		return R 
 	
 	def P_T_list(self,y,p_t_min = 3,p_t_max= 15):
 		'''The numpy linspace of transverse momentum in GeV, with:
