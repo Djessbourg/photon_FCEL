@@ -16,14 +16,15 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 plots_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'plots'))
 
+import matplotlib.pyplot as plt
 import lhapdf as lha
 import numpy as np 
 from scipy import (integrate,differentiate)
 try :
-	from . import Probability as p
+	from . import Probability as prob
 except ImportError:
 	print('Caution! : running from src directory, using local import')
-	import Probability as p 
+	import Probability as prob
 
 # Ininitalisation of a patricle dictionary
 particle = {
@@ -156,6 +157,21 @@ def min_max(ys):
 	y_max = np.max(ys_array, axis=0)
 	return (y_min,y_max)
 
+def derivative_func(f,x,h=10**(-1)):
+	'''Simple derivative function bc scipy one is awfully done'''
+	return (f(x+h) - f(x-h)) / (2*h)
+
+def derivative_array(L,Y):
+	R = []
+	# first term 
+	R.append((L[0]-L[1])/(Y[0]-Y[1]))
+	# mid terms
+	for i in range(1,len(Y)-1):
+		R.append((L[i-1]-L[i+1])/(Y[i-1]-Y[i+1]))
+	#last term
+	R.append((L[-2]-L[-1])/(Y[-2]-Y[-1]))
+	return np.array(R)
+
 # Conveniance objects
 Switch = {																		# To convert in LaTeX for plots
 	'dp_t' : (r'd$p_\bot$',r'(pb/GeV)'),
@@ -192,6 +208,7 @@ class Sigma:
 		self.rs =np.sqrt(self.s)
 		self.Z = float(Z) 														# the number of proton of the target element
 		self.A = float(A)														# the number of nucleus of the target element
+		self.B = 1 																# the number of nucelus of the proton 
 		self.p_list = self.p_set.mkPDFs()										# create the list of all members for the pdf set
 		self.A_list = self.A_set.mkPDFs()
 		self.current_p = self.p_list[0]											# Initialise the pdf member to 0
@@ -1943,14 +1960,14 @@ class Sigma:
 		p_t = rs*x_T/2.
 		A = self.A
 		m = 0 		
-		proba_FCEL = p.proba(A,1.,rs,p_t,y,alpha_s,N_c,m,q0)
+		proba_FCEL = prob.proba(A,1.,rs,p_t,y,alpha_s,N_c,m,q0)
 		sigma_hat = lambda xi: proba_FCEL.sigma_hat(xi)
 		chi = lambda xi:proba_FCEL.Chi(xi)
-		g_FCEL = lambda u,xi: p.g_u(u,chi(xi),N_c,alpha_s)	
-		g_FCEG = lambda u,xi: p.g_u(u,chi(xi),-1/N_c,alpha_s)
+		g_FCEL = lambda u,xi: prob.g_u(u,chi(xi),N_c,alpha_s)	
+		g_FCEG = lambda u,xi: prob.g_u(u,chi(xi),-1/N_c,alpha_s)
 		if var_int == 'nu':	
-			P_FCEL = lambda nu,xi,nu_min: p.p_tilde_u(np.exp(nu),chi(xi),N_c,alpha=alpha_s)/(1-np.exp(-1*g_FCEL(np.exp(nu_min),xi)))
-			P_FCEG = lambda nu,xi,nu_min: p.p_tilde_u(np.exp(nu),chi(xi),-1/N_c,alpha=alpha_s)/(1-np.exp(-1*g_FCEG(np.exp(nu_min),xi)))
+			P_FCEL = lambda nu,xi,nu_min: prob.p_tilde_u(np.exp(nu),chi(xi),N_c,alpha=alpha_s)/(1-np.exp(-1*g_FCEL(np.exp(nu_min),xi)))
+			P_FCEG = lambda nu,xi,nu_min: prob.p_tilde_u(np.exp(nu),chi(xi),-1/N_c,alpha=alpha_s)/(1-np.exp(-1*g_FCEG(np.exp(nu_min),xi)))
 			jacobian_FCEL = lambda nu,xi: np.exp(nu)*pow(sigma_hat(xi)*np.exp(nu)+1,-1)
 			jacobian_FCEG = lambda nu,xi: np.exp(nu)*pow(sigma_hat(xi)*np.exp(nu)+1,1)
 			delta = lambda nu,xi: np.log(1+sigma_hat(xi)*np.exp(nu))
@@ -1996,23 +2013,23 @@ class Sigma:
 		Fc = N_c
 		A = self.A
 		m = 0 																	# masse of the photon
-		proba_FCEL = p.proba(A,1.,rs,p_t,y,alpha_s,Fc,m,q0)
+		proba_FCEL = prob.proba(A,1.,rs,p_t,y,alpha_s,Fc,m,q0)
 		sigma_hat = lambda xi: proba_FCEL.sigma_hat(xi)
 		chi = lambda xi:proba_FCEL.Chi(xi)
-		g_FCEL = lambda u,xi: p.g_u(u,chi(xi),Fc,alpha_s)						#functions for a better normalisation of p_tilde_u
+		g_FCEL = lambda u,xi: prob.g_u(u,chi(xi),Fc,alpha_s)						#functions for a better normalisation of p_tilde_u
 		if var_int == 'nu':														# u = exp(nu)
-			P = lambda nu,xi,nu_min: p.p_tilde_u(np.exp(nu),chi(xi),Fc,alpha=alpha_s)/(1-np.exp(-1*g_FCEL(np.exp(nu_min),xi)))
+			P = lambda nu,xi,nu_min: prob.p_tilde_u(np.exp(nu),chi(xi),Fc,alpha=alpha_s)/(1-np.exp(-1*g_FCEL(np.exp(nu_min),xi)))
 			jacobian = lambda nu,xi: np.exp(nu)/(sigma_hat(xi)*np.exp(nu)+1)
 			delta = lambda nu,xi: np.log(1+sigma_hat(xi)*np.exp(nu))
 			dsigma =lambda nu,xi: self.Gq(y+delta(nu,xi),x_T,xi,num,mu_factor=mu_factor,mu_f_factor=mu_f_factor,iso =iso,n_f=n_f,is_pp = True,switch =switch) + self.qqbar(y+delta(nu,xi),x_T,xi,num,mu_factor=mu_factor,mu_f_factor=mu_f_factor,iso=iso,n_f=n_f,is_pp = True,switch = switch)+self.qbarq(y+delta(nu,xi),x_T,xi,num,mu_factor=mu_factor,mu_f_factor=mu_f_factor,iso=iso,n_f=n_f,is_pp = True,switch = switch)
 			return lambda nu,xi,nu_min:jacobian(nu,xi)*P(nu,xi,nu_min)*dsigma(nu,xi)
 		elif var_int == 'delta':												# delta = ln(1+x)
-			P = lambda delta,xi,delta_min: p.p_tilde_u((np.exp(delta)-1)/sigma_hat(xi),chi(xi),Fc,alpha=alpha_s)/(1-np.exp(-1*g_FCEL((np.exp(delta_min)-1)/sigma_hat(xi),xi)))
+			P = lambda delta,xi,delta_min: prob.p_tilde_u((np.exp(delta)-1)/sigma_hat(xi),chi(xi),Fc,alpha=alpha_s)/(1-np.exp(-1*g_FCEL((np.exp(delta_min)-1)/sigma_hat(xi),xi)))
 			jacobian = lambda delta,xi: 1.
 			dsigma =lambda delta,xi: self.Gq(y+delta,x_T,xi,num,mu_factor=mu_factor,mu_f_factor=mu_f_factor,iso =iso,n_f=n_f,is_pp = True,switch =switch) + self.qqbar(y+delta,x_T,xi,num,mu_factor=mu_factor,mu_f_factor=mu_f_factor,iso=iso,n_f=n_f,is_pp = True,switch = switch)+self.qbarq(y+delta,x_T,xi,num,mu_factor=mu_factor,mu_f_factor=mu_f_factor,iso=iso,n_f=n_f,is_pp = True,switch = switch)
 			return lambda delta,xi,delta_min:jacobian(delta,xi)*P(delta,xi,delta_min)*dsigma(delta,xi)
 		elif var_int == 'nu2':													# u = exp(-nu)
-			P = lambda nu,xi,nu_min: p.p_tilde_u(np.exp(-1*nu),chi(xi),Fc,alpha=alpha_s)/(1-np.exp(-1*g_FCEL(np.exp(-1*nu_min),xi)))
+			P = lambda nu,xi,nu_min: prob.p_tilde_u(np.exp(-1*nu),chi(xi),Fc,alpha=alpha_s)/(1-np.exp(-1*g_FCEL(np.exp(-1*nu_min),xi)))
 			jacobian = lambda nu,xi: np.exp(-nu)/(sigma_hat(xi)*np.exp(-1*nu))
 			delta = lambda nu,xi: np.log(1+sigma_hat(xi)*np.exp(-1*nu))
 			dsigma =lambda nu,xi: self.Gq(y+delta(nu,xi),x_T,xi,num,mu_factor=mu_factor,mu_f_factor=mu_f_factor,iso =iso,n_f=n_f,is_pp = True,switch =switch) + self.qqbar(y+delta(nu,xi),x_T,xi,num,mu_factor=mu_factor,mu_f_factor=mu_f_factor,iso=iso,n_f=n_f,is_pp = True,switch = switch)+self.qbarq(y+delta(nu,xi),x_T,xi,num,mu_factor=mu_factor,mu_f_factor=mu_f_factor,iso=iso,n_f=n_f,is_pp = True,switch = switch)
@@ -2045,23 +2062,23 @@ class Sigma:
 		Fc = -1./N_c
 		A = self.A
 		m=0
-		proba_FCEG = p.proba(A,1.,rs,p_t,y,alpha_s,Fc,m,q0)
+		proba_FCEG = prob.proba(A,1.,rs,p_t,y,alpha_s,Fc,m,q0)
 		sigma_hat = lambda xi: proba_FCEG.sigma_hat(xi)
 		chi = lambda xi:proba_FCEG.Chi(xi)
-		g_FCEG = lambda u,xi: p.g_u(u,chi(xi),Fc,alpha_s)						# functions for a better normalisation of p_tilde_u
+		g_FCEG = lambda u,xi: prob.g_u(u,chi(xi),Fc,alpha_s)						# functions for a better normalisation of p_tilde_u
 		if var_int == 'nu':
-			P = lambda nu,xi,nu_min: p.p_tilde_u(np.exp(nu),chi(xi),Fc,alpha=alpha_s)/(1-np.exp(-1*g_FCEG(np.exp(nu_min),xi)))
+			P = lambda nu,xi,nu_min: prob.p_tilde_u(np.exp(nu),chi(xi),Fc,alpha=alpha_s)/(1-np.exp(-1*g_FCEG(np.exp(nu_min),xi)))
 			jacobian = lambda nu,xi: np.exp(nu)*(1+np.exp(nu)*sigma_hat(xi))
 			delta = lambda nu,xi: np.log(1+sigma_hat(xi)*np.exp(nu))
 			dsigma = lambda nu,xi: self.qG(y-delta(nu,xi),x_T,xi,num,mu_factor=mu_factor,mu_f_factor=mu_f_factor,n_f=n_f,is_pp = True,switch = switch)
 			return lambda nu,xi,nu_min:jacobian(nu,xi)*P(nu,xi,nu_min)*dsigma(nu,xi)
 		elif var_int == 'delta':
-			P = lambda delta,xi,delta_min: p.p_tilde_u((np.exp(delta)-1)/sigma_hat(xi),chi(xi),Fc,alpha=alpha_s)/(1-np.exp(-1*g_FCEG((np.exp(delta_min)-1)/sigma_hat(xi),xi)))
+			P = lambda delta,xi,delta_min: prob.p_tilde_u((np.exp(delta)-1)/sigma_hat(xi),chi(xi),Fc,alpha=alpha_s)/(1-np.exp(-1*g_FCEG((np.exp(delta_min)-1)/sigma_hat(xi),xi)))
 			jacobian = lambda delta: np.exp(2*delta)
 			dsigma = lambda delta,xi: self.qG(y-delta,x_T,xi,num,mu_factor=mu_factor,mu_f_factor=mu_f_factor,n_f=n_f,is_pp = True,switch = switch)
 			return lambda delta,xi,delta_min:jacobian(delta)*P(delta,xi,delta_min)*dsigma(delta,xi)
 		elif var_int == 'nu2':
-			P = lambda nu,xi,nu_min: p.p_tilde_u(np.exp(-1*nu),chi(xi),Fc,alpha=alpha_s)/(1-np.exp(-1*g_FCEG(np.exp(-1*nu_min),xi)))
+			P = lambda nu,xi,nu_min: prob.p_tilde_u(np.exp(-1*nu),chi(xi),Fc,alpha=alpha_s)/(1-np.exp(-1*g_FCEG(np.exp(-1*nu_min),xi)))
 			jacobian = lambda nu,xi: np.exp(-1*nu)*(1+np.exp(-1*nu)*sigma_hat(xi))
 			delta = lambda nu,xi: np.log(1+sigma_hat(xi)*np.exp(-1*nu))
 			dsigma = lambda nu,xi: self.qG(y-delta(nu,xi),x_T,xi,num,mu_factor=mu_factor,mu_f_factor=mu_f_factor,n_f=n_f,is_pp = True,switch = switch)
@@ -2099,7 +2116,7 @@ class Sigma:
 			err_sigma_FCEG = []
 			for i,y in enumerate(Y):
 				print('y = '+str(y)+'| '+str(i+1)+'/'+str(N_y))
-				prob_FCEG = p.proba(A,1.,rs,p_T,y,alpha_s,Fc_FCEG,0,q0)
+				prob_FCEG = prob.proba(A,1.,rs,p_T,y,alpha_s,Fc_FCEG,0,q0)
 				sigma_hat = lambda xi: prob_FCEG.sigma_hat(xi)
 				k = 2./x_T
 				delta_y_FCEL_max = lambda xi: min(np.log(k*xi)-y,np.log(2))
@@ -2169,7 +2186,7 @@ class Sigma:
 			err_sigma_qqbar, err_sigma_qbarq, err_sigma_Gq, err_sigma_qG = [],[],[],[]
 			for i,y in enumerate(Y):
 				print('y = '+str(y)+'| '+str(i+1)+'/'+str(N_y))
-				prob_FCEG = p.proba(A,1.,rs,p_T,y,alpha_s,Fc_FCEG,0,q0)
+				prob_FCEG = prob.proba(A,1.,rs,p_T,y,alpha_s,Fc_FCEG,0,q0)
 				sigma_hat = lambda xi: prob_FCEG.sigma_hat(xi)
 				k = 2./x_T
 				delta_y_FCEL_max = lambda xi: min(np.log(k*xi)-y,np.log(2))
@@ -2238,7 +2255,7 @@ class Sigma:
 			for i,pt in enumerate(P_T):
 				x_T = 2*pt/rs
 				print('pt = '+str(pt)+'| '+str(i+1)+'/'+str(N_pt))
-				prob_FCEG = p.proba(A,1.,rs,pt,y,alpha_s,Fc_FCEG,0,q0)
+				prob_FCEG = prob.proba(A,1.,rs,pt,y,alpha_s,Fc_FCEG,0,q0)
 				sigma_hat = lambda xi: prob_FCEG.sigma_hat(xi)
 				k = 2./x_T
 				delta_y_FCEL_max = lambda xi: min(np.log(k*xi)-y,np.log(2))
@@ -2302,7 +2319,7 @@ class Sigma:
 			p_T = rs*x_T/2.
 			alpha_s = 0.5														# don't use the pdf one, bc the energy scale here is sqrt(q_hat*L)
 			Fc_FCEG = -1./N_c
-			prob_FCEG = p.proba(A,1.,rs,p_T,y,alpha_s,Fc_FCEG,0,q0)
+			prob_FCEG = prob.proba(A,1.,rs,p_T,y,alpha_s,Fc_FCEG,0,q0)
 			sigma_hat = lambda xi: prob_FCEG.sigma_hat(xi)
 			k = 2./x_T
 			delta_y_FCEL_max = lambda xi: min(np.log(k*xi)-y,np.log(2))
@@ -2368,7 +2385,7 @@ class Sigma:
 			p_T = rs*x_T/2.
 			alpha_s = 0.5														# don't use the pdf one, bc the energy scale here is sqrt(q_hat*L)
 			Fc_FCEG = -1./N_c
-			prob_FCEG = p.proba(A,1.,rs,p_T,y,alpha_s,Fc_FCEG,0,q0)
+			prob_FCEG = prob.proba(A,1.,rs,p_T,y,alpha_s,Fc_FCEG,0,q0)
 			sigma_hat = lambda xi: prob_FCEG.sigma_hat(xi)
 			k = 2./x_T
 			delta_y_FCEL_max = lambda xi: min(np.log(k*xi)-y,np.log(2))
@@ -2933,12 +2950,14 @@ class Sigma:
 		p_T = x_T*rs/2.
 		mu2 = (mu_factor*p_T)**2
 		alpha_s = self.alpha_s_p(num,mu2)
+		Y = Y_list(x_T)
 		xi_bar = 0.5
 		C_FCEG = -1/N_c
 		C_FCEL = N_c
-		Delta_Qs = 0			# /!\ /!\ Have to think what to put here, too tired for that /!\ /!\
-		x_mean_FCEG = C_FCEG*Delta_Qs*(1-xi_bar)/p_T
-		x_mean_FCEL = C_FCEL*Delta_Qs*(1-xi_bar)/p_T
+		proba = lambda y: prob.proba(self.A,self.B,rs,p_T,y,alpha_s,C_FCEL,0,q0=q0)
+		Delta_Qs = lambda y: proba(y).Delta_Q(xi_bar)
+		x_mean_FCEG =  np.array([alpha_s*C_FCEG*Delta_Qs(y)*(1-xi_bar)/p_T for y in Y])
+		x_mean_FCEL =  np.array([alpha_s*C_FCEL*Delta_Qs(y)*(1-xi_bar)/p_T for y in Y])
 		# Value of the 0th order for the RpA
 		R = 1 					
 		# Cross section of each process as a function of y 
@@ -2946,21 +2965,28 @@ class Sigma:
 		gq = lambda y : self.dsigma_Gq_dydpt(y,x_T,num,mu_factor=mu_factor,mu_f_factor=mu_f_factor,iso=iso,n_f=n_f,is_pp=True, switch=switch)[0]
 		qqbar = lambda y : self.dsigma_qqbar_dydpt(y,x_T,num,mu_factor=mu_factor,mu_f_factor=mu_f_factor,iso=iso,n_f=n_f,is_pp=True, switch=switch)[0]
 		qbarq = lambda y : self.dsigma_qbarq_dydpt(y,x_T,num,mu_factor=mu_factor,mu_f_factor=mu_f_factor,iso=iso,n_f=n_f,is_pp=True, switch=switch)[0]
-		Y = Y_list(x_T)
+		
+		L_qg = np.array([qg(y)for y in Y])
+		L_gq = np.array([gq(y) for y in Y])
+		L_qqbar = np.array([qqbar(y) for y in Y])
+		L_qbarq = np.array([qbarq(y) for y in Y])
+
+		L_tot = L_qg+L_gq+L_qqbar+L_qbarq
+		
 		# Derivatives according to y 
-		dqg = differentiate.derivative(qg,Y)
-		dgq = differentiate.derivative(gq,Y)
-		dqqbar = differentiate.derivative(qqbar,Y)
-		dqbarq = differentiate.derivative(qbarq,Y)
+		dqg = derivative_array(L_qg,Y)
+		dgq = derivative_array(L_gq,Y)
+		dqqbar = derivative_array(L_qqbar,Y)
+		dqbarq = derivative_array(L_qbarq,Y)
 		# Each term for the final result
-		Rqg  = (dqg.df-qg(Y))/qg(Y)
-		Rgq  = (dgq.df-gq(Y))/gq(Y)
-		Rqqbar = (dqqbar.df-qqbar(Y))/qqbar(Y)
-		Rqbarq = (dqbarq.dr-qbarq(Y))/qbarq(Y)
+		Rqg = dqg-L_qg
+		Rgq = dgq - L_gq
+		Rqqbar = dqqbar - L_qqbar
+		Rqbarq = dqbarq - L_qbarq
 		# FCEL and FCEG part
 		FCEL = x_mean_FCEL*(Rgq+Rqqbar+Rqbarq)
 		FCEG = x_mean_FCEG*Rqg
-		R += FCEL + FCEG
+		R += (FCEL + FCEG)/L_tot
 		return R 
 	
 	def P_T_list(self,y,p_t_min = 3,p_t_max= 15):
@@ -2981,8 +3007,8 @@ class Sigma:
 		alpha_s = self.alpha_s_p(num,mu2)
 		Fc_FCEG = -1./N_c
 		Fc_FCEL = N_c
-		prob_FCEG = p.proba(A,1,rs,p_T,y,alpha_s,Fc_FCEG,0)
-		prob_FCEL = p.proba(A,1,rs,p_T,y,alpha_s,Fc_FCEL,0)
+		prob_FCEG = prob.proba(A,1,rs,p_T,y,alpha_s,Fc_FCEG,0)
+		prob_FCEL = prob.proba(A,1,rs,p_T,y,alpha_s,Fc_FCEL,0)
 		sigma_hat_FCEG = prob_FCEG.sigma_hat(xi)
 		sigma_hat_FCEL = prob_FCEL.sigma_hat(xi)
 		k = 2./x_T

@@ -120,12 +120,17 @@ class proba():
             return q0*pow(0.01/self.xA(xi),0.3)
         elif A == self.B:
             return q0*pow(0.01/self.xB(xi),0.3)
+        
+    def Delta_Q(self,xi):
+        Q_A = self.Lambda(self.A,xi)
+        Q_B = self.Lambda(self.B,xi)
+        return np.sqrt(Q_A**2-Q_B**2)
 
     def Lambda(self,A,xi):
         return np.sqrt(self.q(A,xi)*L(A))
 
     def M_xi(self,xi):
-        '''retrourne la masse invariante en fonction de chi, (voir pour le cas particulier du photon)'''
+        '''retrourne la masse invariante en fonction de xi, (voir pour le cas particulier du photon)'''
         m_t = float(self.m_t)
         m = self.m
         z = self.z
