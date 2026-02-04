@@ -421,19 +421,15 @@ class Sigma:
 		mu2 = (p_t*mu_factor)**2
 		mu_f2 = (p_t*mu_f_factor)**2
 		alpha_s = self.alpha_s_p(num,mu2)
-		if switch == 'dp_t':
-			prefactor = 4*pi*alpha*alpha_s/(pow(s,1.5)*x_T)
-		elif switch == 'd2p_t':
-			prefactor = 4*alpha*alpha_s/((s*x_T)**2)
-		elif switch == 'dp_t2':
-			prefactor = 4*pi*alpha*alpha_s/((s*x_T)**2)
+		prefactor = Switch_fact[switch](p_t)
+		dsigma_dxi = alpha*alpha_s*Xi_factor*prefactor/(s*p_t**2 *N_c)
 		if not is_pp:
 			F = self.F2_p(x_proj,mu_f2,num,iso ='p',n_f=n_f)
 			G = self.Gluon_A(x_targ,mu_f2,num)
 		elif is_pp:
 			F = self.F2_p(x_proj,mu_f2,num,iso='p',n_f=n_f)
 			G = self.Gluon_p(x_targ,mu_f2,num)
-		return F*G*Xi_factor*prefactor/N_c
+		return F*G*dsigma_dxi
 	
 	def qG_M(self,y,x_T,Xi,M,num,mu_factor=1,mu_f_factor=1,n_f=3,is_pp = False,switch = 'dp_t'): 				# not affected by isospin because G_p  = G_n 
 		'''Return the q(p)G(A)-> gamma^\star q integrand with:
@@ -458,7 +454,7 @@ class Sigma:
 		mu_f2 = (M_t*mu_f_factor)**2
 		alpha_s = self.alpha_s_p(num,mu2)
 		prefactor = Switch_fact[switch](p_t)
-		dsigma_dxi = alpha*alpha_s*Xi_factor*prefactor/N_c
+		dsigma_dxi = alpha*alpha_s*Xi_factor*prefactor/(s*M_t**2 *N_c)
 		if not is_pp:
 			print ('you choose pA???')
 			F = self.F2_p(x_proj,mu_f2,num,iso ='p',n_f=n_f)
@@ -488,19 +484,15 @@ class Sigma:
 		mu_f2 = (p_t*mu_f_factor)**2
 		alpha_s = self.alpha_s_p(num,mu2)
 		Xi_factor = Xi_dict["gq"]["M=0"](Xi)
-		if switch == 'dp_t':
-			prefactor = 4*pi*alpha*alpha_s/(pow(s,1.5)*x_T)
-		elif switch == 'd2p_t':
-			prefactor = 4*alpha*alpha_s/((s*x_T)**2)
-		elif switch == 'dp_t2':
-			prefactor = 4*pi*alpha*alpha_s/((s*x_T)**2)
+		prefactor = Switch_fact[switch](p_t)
+		dsigma_dxi = alpha*alpha_s*Xi_factor*prefactor/(s*p_t**2 *N_c)
 		if not is_pp:
 			F = self.F2_A(x_targ,mu_f2,num,n_f)
 			G = self.Gluon_p(x_proj,mu_f2,num)
 		elif is_pp:
 			F = self.F2_p(x_targ,mu_f2,num,iso,n_f) 					# here, the target could be a neutron, so we put an iso parameter
 			G = self.Gluon_p(x_proj,mu_f2,num)
-		return F*G*Xi_factor*prefactor/N_c
+		return F*G*dsigma_dxi
 	
 	def Gq_M(self,y,x_T,Xi,M,num,mu_factor=1,mu_f_factor=1,iso ='p',n_f=3,is_pp = False,switch ='dp_t'):  
 		'''Return the G(p)q(A)-> gamma^\star q integrand with:
@@ -527,7 +519,7 @@ class Sigma:
 		Xi_factor = Xi_dict["gq"]["M"](Xi,b)
 		alpha_s = self.alpha_s_p(num,mu2)
 		prefactor = Switch_fact[switch](p_t)
-		dsigma_dxi = alpha*alpha_s*Xi_factor*prefactor/N_c
+		dsigma_dxi = alpha*alpha_s*Xi_factor*prefactor/(s*M_t**2 * N_c)
 		if not is_pp:
 			F = self.F2_p(x_targ,mu_f2,num,iso ='p',n_f=n_f)
 			G = self.Gluon_A(x_proj,mu_f2,num)
@@ -555,15 +547,11 @@ class Sigma:
 		mu2 = (p_t*mu_factor)**2
 		mu_f2 = (p_t*mu_f_factor)**2
 		alpha_s = self.alpha_s_p(num,mu2)
-		if switch == 'dp_t':
-			prefactor = 4*pi*alpha*alpha_s/(pow(s,1.5)*x_T)
-		elif switch == 'd2p_t':
-			prefactor = 4*alpha*alpha_s/((s*x_T)**2)
-		elif switch == 'dp_t2':
-			prefactor = 4*pi*alpha*alpha_s/((s*x_T)**2)
+		prefactor = Switch_fact[switch](p_t)
 		Xi_factor = Xi_dict["qqbar"]["M=0"](Xi)
+		dsigma_dxi = alpha*alpha_s*Xi_factor*prefactor*2*C_F/(s*p_t**2 *N_c)
 		F_qqbar = self.F_ij(x_proj,x_targ,mu_f2,num,direction='qqbar',iso=iso,n_f=n_f,is_pp=is_pp)
-		return F_qqbar*Xi_factor*(2*C_F/N_c)*prefactor
+		return F_qqbar*dsigma_dxi
 	
 	def qqbar_M(self,y,x_T,Xi,M,num,mu_factor=1,mu_f_factor=1,iso='p',n_f=3,is_pp = False,switch = 'dp_t'):
 		'''Return the q(p)qbar(A)-> gamma G integrand with:
@@ -590,7 +578,7 @@ class Sigma:
 		Xi_factor = Xi_dict["qqbar"]["M"](Xi,b)
 		alpha_s = self.alpha_s_p(num,mu2)
 		prefactor = Switch_fact[switch](p_t)
-		dsigma_dxi = alpha*alpha_s*Xi_factor*prefactor*2*C_F/N_c
+		dsigma_dxi = alpha*alpha_s*Xi_factor*prefactor*2*C_F/(s*M_t**2 *N_c)
 		F_qqbar = self.F_ij(x_proj,x_targ,mu_f2,num,direction='qqbar',iso=iso,n_f=n_f,is_pp=is_pp)
 		return F_qqbar*dsigma_dxi*self.jac_xi(Xi,b)
 	
@@ -613,15 +601,11 @@ class Sigma:
 		mu2 = (p_t*mu_factor)**2
 		mu_f2 = (p_t*mu_f_factor)**2
 		alpha_s = self.alpha_s_p(num,mu2)
-		if switch == 'dp_t':
-			prefactor = 4*pi*alpha*alpha_s/(pow(s,1.5)*x_T)
-		elif switch == 'd2p_t':
-			prefactor = 4*alpha*alpha_s/((s*x_T)**2)
-		elif switch == 'dp_t2':
-			prefactor = 4*pi*alpha*alpha_s/((s*x_T)**2)
 		Xi_factor = Xi_dict["qbarq"]["M=0"](Xi)
+		prefactor = Switch_fact[switch](p_t)
+		dsigma_dxi = alpha*alpha_s*Xi_factor*prefactor*2*C_F/(s*p_t**2 *N_c)
 		F_qbarq = self.F_ij(x_proj,x_targ,mu_f2,num,direction='qbarq',iso=iso,n_f=n_f,is_pp=is_pp)
-		return F_qbarq*Xi_factor*(2*C_F/N_c)*prefactor
+		return F_qbarq*dsigma_dxi
 	
 	def qbarq_M(self,y,x_T,Xi,M,num,mu_factor=1,mu_f_factor=1,iso='p',n_f=3,is_pp = False, switch = 'dp_t'): # y,x_T,xi,mu_f2,num,n_f, is_pp
 		'''Return the q(p)qbar(A)-> gamma G integrand with:
@@ -648,7 +632,7 @@ class Sigma:
 		Xi_factor = Xi_dict["qbarq"]["M"](Xi,b)
 		alpha_s = self.alpha_s_p(num,mu2)
 		prefactor = Switch_fact[switch](p_t)
-		dsigma_dxi = alpha*alpha_s*Xi_factor*prefactor*2*C_F/N_c
+		dsigma_dxi = alpha*alpha_s*Xi_factor*prefactor*2*C_F/(s*M_t**2 *N_c)
 		F_qqbar = self.F_ij(x_proj,x_targ,mu_f2,num,direction='qbarq',iso=iso,n_f=n_f,is_pp=is_pp)
 		return F_qqbar*dsigma_dxi*self.jac_xi(Xi,b)
 	
@@ -723,7 +707,7 @@ class Sigma:
 		b = (M/p_t)**2
 		Integrand = lambda xi: self.all_process_integrand_M(y,x_T,xi,M,num,mu_factor,mu_f_factor,iso,n_f,is_pp,switch)
 		sigma, err = integrate.quad(Integrand,Xi_min_M(y,x_T,b),Xi_max_M(y,x_T,b), limit = N_limit)
-		return (conv_fact*sigma/rs**4, conv_fact*err/rs**4)
+		return (conv_fact*sigma, conv_fact*err)
 	
 	def dsigma_qG_dydpt(self,y,x_T,num,mu_factor=1,mu_f_factor=1,n_f = 3, is_pp = False,switch = 'dp_t'):
 		'''Return the qG cross section for a point of the phase space (y,x_T)
@@ -755,9 +739,8 @@ class Sigma:
 		b = (M/p_t)**2
 		Xi_min, Xi_max = Xi_min_M(y,x_T,b),Xi_max_M(y,x_T,b)
 		Integrand = lambda xi: self.qG_M(y,x_T,xi,M,num,mu_factor,mu_f_factor,n_f,is_pp,switch)
-		# print('(xi_min,xi_max) = '+ str((Xi_min_M(y,x_T,b),Xi_max_M(y,x_T,b))))
 		sigma, err = integrate.quad(Integrand,Xi_min,Xi_max,limit = N_limit)
-		return (conv_fact*sigma/rs**4, conv_fact*err/rs**4)
+		return (conv_fact*sigma, conv_fact*err)
 	
 	def dsigma_Gq_dydpt(self,y,x_T,num,mu_factor=1,mu_f_factor=1,iso = 'p',n_f = 3, is_pp = False,switch = 'dp_t'):
 		'''Return the Gq cross section for a point of the phase space (y,x_T)
@@ -792,7 +775,7 @@ class Sigma:
 		Xi_min, Xi_max = Xi_min_M(y,x_T,b),Xi_max_M(y,x_T,b)
 		Integrand = lambda xi: self.Gq_M(y,x_T,xi,M,num,mu_factor,mu_f_factor,iso,n_f,is_pp,switch)
 		sigma, err = integrate.quad(Integrand,Xi_min,Xi_max,limit = N_limit)
-		return (conv_fact*sigma/rs**4, conv_fact*err/rs**4)
+		return (conv_fact*sigma, conv_fact*err)
 	
 	def dsigma_qqbar_dydpt(self,y,x_T,num,mu_factor=1,mu_f_factor=1,iso = 'p',n_f = 3, is_pp = False,switch = 'dp_t'):
 		'''Return the qqbar cross section for a point of the phase space (y,x_T)
@@ -827,7 +810,7 @@ class Sigma:
 		Xi_min, Xi_max = Xi_min_M(y,x_T,b),Xi_max_M(y,x_T,b)
 		Integrand = lambda xi: self.qqbar_M(y,x_T,xi,M,num,mu_factor,mu_f_factor,iso,n_f,is_pp,switch)
 		sigma, err = integrate.quad(Integrand,Xi_min,Xi_max, limit = N_limit)
-		return (conv_fact*sigma/rs**4, conv_fact*err/rs**4)
+		return (conv_fact*sigma, conv_fact*err)
 	
 	def dsigma_qbarq_dydpt(self,y,x_T,num,mu_factor=1,mu_f_factor=1,iso = 'p',n_f = 3, is_pp = False,switch = 'dp_t'):
 		'''Return the qbarq cross section for a point of the phase space (y,x_T)
@@ -862,7 +845,7 @@ class Sigma:
 		Xi_min, Xi_max = Xi_min_M(y,x_T,b),Xi_max_M(y,x_T,b)
 		Integrand = lambda xi: self.qbarq_M(y,x_T,xi,M,num,mu_factor,mu_f_factor,iso,n_f,is_pp,switch)
 		sigma, err = integrate.quad(Integrand,Xi_min,Xi_max, limit = N_limit)
-		return (conv_fact*sigma/rs**4, conv_fact*err/rs**4)
+		return (conv_fact*sigma, conv_fact*err)
 	
 	### integration part ###
 	# Rapidity integration

@@ -30,7 +30,7 @@ p = "nNNPDF30_nlo_as_0118_p"
 Pb = "nNNPDF30_nlo_as_0118_A208_Z82"
 Z = 82.
 A = 208.
-M = [0,2,5,10,50] # vitual photon mass in GeV
+M = [0,2,5,10,15] # vitual photon mass in GeV
 cen = 0
 
 pPb_cross_section = sig.Sigma(p,Pb,s,Z,A)
