@@ -69,7 +69,7 @@ conv_fact = pow(0.197,2)*pow(10,10)												# to convert Gev^-2 into barns
 pi = np.pi
 
 # Integration parameters
-epsilon = pow(10,-15)															# to avoid phase space borders 
+epsilon = pow(10,-10)															# to avoid phase space borders 
 N_pt = 41
 N_Xi = 1000
 N_y= 41
@@ -88,7 +88,7 @@ def x_1(y,x_T,Xi):
 def x_2(y,x_T,Xi):
 	return x_2_tilde(y,x_T)/(1-Xi)
 
-Xi_min = lambda y,x_T: x_1_tilde(y,x_T)
+Xi_min = lambda y,x_T: x_1_tilde(y,x_T) 
 Xi_max = lambda y,x_T: 1-x_2_tilde(y,x_T)
 
 # for virtual photons, p_T -> M_T, so M_T/sqrt(s) = (x_T/2)*sqrt(b+1), b = (M/p_T)**2 and x_T = 2*p_T/rs
@@ -129,10 +129,10 @@ Xi_dict ={ #dictionary of the Xi(xi,b) expression in dsigma/dxi for the massive 
 	}
 }
 
-def Y_list(x_T):
+def Y_list(x_T,y_abs=6):
 	'''Return a numpy linespace array of N_y rapidities given x_T'''
-	y_min = max(-np.log(2./x_T)+epsilon,-6)
-	y_max = min(np.log(2./x_T)-epsilon,6)
+	y_min = max(-np.log(2./x_T)+epsilon,-1*y_abs)	#Use 4.5 for gold at RHIC energies and 6 for lead at LHC
+	y_max = min(np.log(2./x_T)-epsilon,y_abs)
 	Y = np.linspace(y_min,y_max,N_y)
 	return Y
 
@@ -720,7 +720,8 @@ class Sigma:
 		- is_pp a booleen (=False by default) to tell the collision type
 		- switch the convention of p_T integration (= 'dp_t' by default)'''
 		Integrand = lambda xi: self.qG(y,x_T,xi,num,mu_factor,mu_f_factor,n_f,is_pp,switch)
-		sigma, err = integrate.quad(Integrand,Xi_min(y,x_T),Xi_max(y,x_T), limit = N_limit)
+		Ximin, Ximax = Xi_min(y,x_T),Xi_max(y,x_T)
+		sigma, err = integrate.quad(Integrand,Ximin,Ximax, limit = N_limit)
 		return (conv_fact*sigma, conv_fact*err)
 	
 	def dsigma_qG_dydpt_M(self,y,x_T,M,num,mu_factor=1,mu_f_factor=1,n_f = 3, is_pp = False,switch = 'dp_t'):
@@ -2915,7 +2916,7 @@ class Sigma:
 	
 	### Other functions ###
 
-	def Rpp_Taylor_FCELG_dy(self,x_T,num,q0,mu_factor=1,mu_f_factor=1,iso='p',n_f=3,switch ='dp_t',eps = 1e-15,var_int='nu'):
+	def Rpp_Taylor_FCELG_dy(self,x_T,Xi_tilde,num,q0,mu_factor=1,mu_f_factor=1,iso='p',n_f=3,switch ='dp_t',eps = 1e-15,var_int='nu'):
 		'''Return the ratio (for real photons) of the Taylor approximation at the first order 
 		of the shifted sigma_pp in rapidity (or pn if iso = 'n') 
 		over sigma_pp (resp pn), with:
@@ -2934,13 +2935,12 @@ class Sigma:
 		mu2 = (mu_factor*p_T)**2
 		alpha_s = self.alpha_s_p(num,mu2)
 		Y = Y_list(x_T)
-		xi_bar = 0.5
 		C_FCEG = -1/N_c
 		C_FCEL = N_c
 		proba = lambda y: prob.proba(self.A,self.B,rs,p_T,y,alpha_s,C_FCEL,0,q0=q0)
-		Delta_Qs = lambda y: proba(y).Delta_Q(xi_bar)
-		x_mean_FCEG =  np.array([alpha_s*C_FCEG*Delta_Qs(y)*(1-xi_bar)/p_T for y in Y])
-		x_mean_FCEL =  np.array([alpha_s*C_FCEL*Delta_Qs(y)*(1-xi_bar)/p_T for y in Y])
+		Delta_Qs = lambda y: proba(y).Delta_Q(Xi_tilde)
+		x_mean_FCEG =  np.array([alpha_s*C_FCEG*Delta_Qs(y)*(Xi_tilde)/p_T for y in Y]) #In the paper, it's (1-Xi) because Xi has the other cinematic definition
+		x_mean_FCEL =  np.array([alpha_s*C_FCEL*Delta_Qs(y)*(Xi_tilde)/p_T for y in Y])
 		# Value of the 0th order for the RpA
 		R = 1 					
 		# Cross section of each process as a function of y 
