@@ -2018,7 +2018,57 @@ class Sigma:
 			delta = lambda nu,xi: np.log(1+sigma_hat(xi)*np.exp(-1*nu))
 			dsigma =lambda nu,xi: self.Gq(y+delta(nu,xi),x_T,xi,num,mu_factor=mu_factor,mu_f_factor=mu_f_factor,iso =iso,n_f=n_f,is_pp = True,switch =switch) + self.qqbar(y+delta(nu,xi),x_T,xi,num,mu_factor=mu_factor,mu_f_factor=mu_f_factor,iso=iso,n_f=n_f,is_pp = True,switch = switch)+self.qbarq(y+delta(nu,xi),x_T,xi,num,mu_factor=mu_factor,mu_f_factor=mu_f_factor,iso=iso,n_f=n_f,is_pp = True,switch = switch)
 			return lambda nu,xi,nu_min:jacobian(nu,xi)*P(nu,xi,nu_min)*dsigma(nu,xi)
-		
+
+	def FCEL_integrand_M(self,y,x_T,M,num,mu_factor=1,mu_f_factor=1,iso ='p',n_f=3,switch ='dp_t',var_int='nu',q0=0.07):
+		'''return the FCEL integrand as a function (lambda class) of nu and xi,
+		with:
+		- y the rapidity
+		- x_T = 2*p_T/√s ,p_T the transverse momentum
+		- M the photon mass in GeV
+		- num the member of the pdf set
+		- mu_factor that describes mu = p_T*mu_factor (same for mu_f_factor)
+		- iso the isospin variable (='p' by default)
+		- n_f the number of flavours (=3 by default)
+		- is_pp a booleen (=False by default) to tell the collision type
+		- switch the convention of p_T integration (= 'dp_t' by default)
+		- q0 the transport coefficient
+		as :
+			lambda nu,xi,nu_min:jacobian(nu,xi)*P(nu,xi,nu_min)*dsigma(nu,xi)
+			- nu the default integration variable, which can be set in var_int:
+				* "nu" = ln(u)
+				* "delta" = ln(1+x)
+				* "nu2" = -ln(u)
+				(for more info see the reedme)
+			- xi the partonic fraction p+_3/p+_1 = -\hat{u}/\hat{s}
+			- nu_min refers to the minimum of the integration bounds for a good
+			normalisation of P (same, see reedme for more info)'''
+		alpha_s = 0.5
+		rs = self.rs
+		p_t = rs*x_T/2.
+		Fc = N_c
+		A = self.A
+		proba_FCEL = prob.proba(A,1.,rs,p_t,y,alpha_s,Fc,M,q0)
+		sigma_hat = lambda xi: proba_FCEL.sigma_hat(xi)
+		chi = lambda xi:proba_FCEL.Chi(xi)
+		g_FCEL = lambda u,xi: prob.g_u(u,chi(xi),Fc,alpha_s)						#functions for a better normalisation of p_tilde_u
+		if var_int == 'nu':														# u = exp(nu)
+			P = lambda nu,xi,nu_min: prob.p_tilde_u(np.exp(nu),chi(xi),Fc,alpha=alpha_s)/(1-np.exp(-1*g_FCEL(np.exp(nu_min),xi)))
+			jacobian = lambda nu,xi: np.exp(nu)/(sigma_hat(xi)*np.exp(nu)+1)
+			delta = lambda nu,xi: np.log(1+sigma_hat(xi)*np.exp(nu))
+			dsigma =lambda nu,xi: self.Gq_M(y+delta(nu,xi),x_T,xi,M,num,mu_factor=mu_factor,mu_f_factor=mu_f_factor,iso =iso,n_f=n_f,is_pp = True,switch =switch) + self.qqbar_M(y+delta(nu,xi),x_T,xi,M,num,mu_factor=mu_factor,mu_f_factor=mu_f_factor,iso=iso,n_f=n_f,is_pp = True,switch = switch)+self.qbarq_M(y+delta(nu,xi),x_T,xi,M,num,mu_factor=mu_factor,mu_f_factor=mu_f_factor,iso=iso,n_f=n_f,is_pp = True,switch = switch)
+			return lambda nu,xi,nu_min:jacobian(nu,xi)*P(nu,xi,nu_min)*dsigma(nu,xi)
+		elif var_int == 'delta':												# delta = ln(1+x)
+			P = lambda delta,xi,delta_min: prob.p_tilde_u((np.exp(delta)-1)/sigma_hat(xi),chi(xi),Fc,alpha=alpha_s)/(1-np.exp(-1*g_FCEL((np.exp(delta_min)-1)/sigma_hat(xi),xi)))
+			jacobian = lambda delta,xi: 1.
+			dsigma =lambda delta,xi: self.Gq_M(y+delta,x_T,xi,M,num,mu_factor=mu_factor,mu_f_factor=mu_f_factor,iso =iso,n_f=n_f,is_pp = True,switch =switch) + self.qqbar_M(y+delta,x_T,xi,M,num,mu_factor=mu_factor,mu_f_factor=mu_f_factor,iso=iso,n_f=n_f,is_pp = True,switch = switch)+self.qbarq_M(y+delta,x_T,xi,M,num,mu_factor=mu_factor,mu_f_factor=mu_f_factor,iso=iso,n_f=n_f,is_pp = True,switch = switch)
+			return lambda delta,xi,delta_min:jacobian(delta,xi)*P(delta,xi,delta_min)*dsigma(delta,xi)
+		elif var_int == 'nu2':													# u = exp(-nu)
+			P = lambda nu,xi,nu_min: prob.p_tilde_u(np.exp(-1*nu),chi(xi),Fc,alpha=alpha_s)/(1-np.exp(-1*g_FCEL(np.exp(-1*nu_min),xi)))
+			jacobian = lambda nu,xi: np.exp(-nu)/(sigma_hat(xi)*np.exp(-1*nu))
+			delta = lambda nu,xi: np.log(1+sigma_hat(xi)*np.exp(-1*nu))
+			dsigma =lambda nu,xi: self.Gq_m(y+delta(nu,xi),x_T,xi,M,num,mu_factor=mu_factor,mu_f_factor=mu_f_factor,iso =iso,n_f=n_f,is_pp = True,switch =switch) + self.qqbar_M(y+delta(nu,xi),x_T,xi,M,num,mu_factor=mu_factor,mu_f_factor=mu_f_factor,iso=iso,n_f=n_f,is_pp = True,switch = switch)+self.qbarq_M(y+delta(nu,xi),x_T,xi,M,num,mu_factor=mu_factor,mu_f_factor=mu_f_factor,iso=iso,n_f=n_f,is_pp = True,switch = switch)
+			return lambda nu,xi,nu_min:jacobian(nu,xi)*P(nu,xi,nu_min)*dsigma(nu,xi)
+
 	def FCEG_integrand(self,y,x_T,num,mu_factor=1,mu_f_factor=1,n_f=3,switch ='dp_t',var_int = 'nu',q0=0.07):
 		'''return the FCEG integrand as a function (lambda class) of nu and xi,
 		with:
@@ -2066,6 +2116,56 @@ class Sigma:
 			jacobian = lambda nu,xi: np.exp(-1*nu)*(1+np.exp(-1*nu)*sigma_hat(xi))
 			delta = lambda nu,xi: np.log(1+sigma_hat(xi)*np.exp(-1*nu))
 			dsigma = lambda nu,xi: self.qG(y-delta(nu,xi),x_T,xi,num,mu_factor=mu_factor,mu_f_factor=mu_f_factor,n_f=n_f,is_pp = True,switch = switch)
+			return lambda nu,xi,nu_min:jacobian(nu,xi)*P(nu,xi,nu_min)*dsigma(nu,xi)
+		# replace by [lambda nu,xi:jacobian(nu,xi), lambda nu,xi:P(nu,xi,nu_min),lambda nu,xi:dsigma(nu,xi),chi,sigma_hat] for the file integrand_FCELG.py
+
+	def FCEG_integrand_M(self,y,x_T,M,num,mu_factor=1,mu_f_factor=1,n_f=3,switch ='dp_t',var_int = 'nu',q0=0.07):
+		'''return the FCEG integrand as a function (lambda class) of nu and xi,
+		with:
+		- y the rapidity
+		- x_T = 2*p_T/√s ,p_T the transverse momentum
+		- M the photon mass in GeV
+		- num the member of the pdf set
+		- mu_factor that describes mu = p_T*mu_factor (same for mu_f_factor)
+		- n_f the number of flavours (=3 by default)
+		- is_pp a booleen (=False by default) to tell the collision type
+		- switch the convention of p_T integration (= 'dp_t' by default)
+		- q0 the transport coefficient
+		as :
+			lambda nu,xi,nu_min:jacobian(nu,xi)*P(nu,xi,nu_min)*dsigma(nu,xi)
+			- nu the default integration variable, which can be set in var_int:
+				* "nu" = ln(u)
+				* "delta" = ln(1+x)
+				* "nu2" = -ln(u)
+				(for more info see the reedme)
+			- xi the partonic fraction p+_3/p+_1 = -\hat{u}/\hat{s}
+			- nu_min refers to the minimum of the integration bounds for a good
+			normalisation of P (same, see reedme for more info)'''
+		alpha_s = 0.5
+		rs = self.rs
+		p_t = rs*x_T/2.
+		Fc = -1./N_c
+		A = self.A
+		proba_FCEG = prob.proba(A,1.,rs,p_t,y,alpha_s,Fc,M,q0)
+		sigma_hat = lambda xi: proba_FCEG.sigma_hat(xi)
+		chi = lambda xi:proba_FCEG.Chi(xi)
+		g_FCEG = lambda u,xi: prob.g_u(u,chi(xi),Fc,alpha_s)						# functions for a better normalisation of p_tilde_u
+		if var_int == 'nu':
+			P = lambda nu,xi,nu_min: prob.p_tilde_u(np.exp(nu),chi(xi),Fc,alpha=alpha_s)/(1-np.exp(-1*g_FCEG(np.exp(nu_min),xi)))
+			jacobian = lambda nu,xi: np.exp(nu)*(1+np.exp(nu)*sigma_hat(xi))
+			delta = lambda nu,xi: np.log(1+sigma_hat(xi)*np.exp(nu))
+			dsigma = lambda nu,xi: self.qG_m(y-delta(nu,xi),x_T,xi,M,num,mu_factor=mu_factor,mu_f_factor=mu_f_factor,n_f=n_f,is_pp = True,switch = switch)
+			return lambda nu,xi,nu_min:jacobian(nu,xi)*P(nu,xi,nu_min)*dsigma(nu,xi)
+		elif var_int == 'delta':
+			P = lambda delta,xi,delta_min: prob.p_tilde_u((np.exp(delta)-1)/sigma_hat(xi),chi(xi),Fc,alpha=alpha_s)/(1-np.exp(-1*g_FCEG((np.exp(delta_min)-1)/sigma_hat(xi),xi)))
+			jacobian = lambda delta: np.exp(2*delta)
+			dsigma = lambda delta,xi: self.qG_M(y-delta,x_T,xi,M,num,mu_factor=mu_factor,mu_f_factor=mu_f_factor,n_f=n_f,is_pp = True,switch = switch)
+			return lambda delta,xi,delta_min:jacobian(delta)*P(delta,xi,delta_min)*dsigma(delta,xi)
+		elif var_int == 'nu2':
+			P = lambda nu,xi,nu_min: prob.p_tilde_u(np.exp(-1*nu),chi(xi),Fc,alpha=alpha_s)/(1-np.exp(-1*g_FCEG(np.exp(-1*nu_min),xi)))
+			jacobian = lambda nu,xi: np.exp(-1*nu)*(1+np.exp(-1*nu)*sigma_hat(xi))
+			delta = lambda nu,xi: np.log(1+sigma_hat(xi)*np.exp(-1*nu))
+			dsigma = lambda nu,xi: self.qG_M(y-delta(nu,xi),x_T,xi,M,num,mu_factor=mu_factor,mu_f_factor=mu_f_factor,n_f=n_f,is_pp = True,switch = switch)
 			return lambda nu,xi,nu_min:jacobian(nu,xi)*P(nu,xi,nu_min)*dsigma(nu,xi)
 		# replace by [lambda nu,xi:jacobian(nu,xi), lambda nu,xi:P(nu,xi,nu_min),lambda nu,xi:dsigma(nu,xi),chi,sigma_hat] for the file integrand_FCELG.py
 		
@@ -2336,6 +2436,72 @@ class Sigma:
 			Int_FCEL = integrate.quad(lambda xi: integrate.quad(lambda nu: Integrand_FCEL(nu,xi,min_FCEL(xi)),min_FCEL(xi),max_FCEL(xi))[0],Xi_min(y,x_T),Xi_max(y,x_T))
 			Integrand_FCEG = self.FCEG_integrand(y,x_T,num,mu_factor,mu_f_factor,n_f,switch,var_int=var_int,q0=q0)
 			Int_FCEG = integrate.quad(lambda xi: integrate.quad(lambda nu: Integrand_FCEG(nu,xi,min_FCEG(xi)),min_FCEG(xi),max_FCEG(xi))[0],Xi_min(y,x_T),Xi_max(y,x_T))
+			sigma_FCEL = conv_fact*Int_FCEL[0]
+			err_sigma_FCEL = conv_fact*Int_FCEL[1]
+			sigma_FCEG = conv_fact*Int_FCEG[0]
+			err_sigma_FCEG = conv_fact*Int_FCEG[1]
+		return [(sigma_FCEL,err_sigma_FCEL),(sigma_FCEG,err_sigma_FCEG)]
+	
+	def FCEL_G_integration_M_dydpt(self,y,x_T,M,num,mu_factor=1,mu_f_factor=1,iso='p',n_f=3,switch ='dp_t',eps = 1e-15,var_int='nu',q0 = 0.07):
+		'''Return the integrated FCEL and FCEG componnents for (y,p_T) of the phase space,
+		with:
+		- y the rapidity
+		- x_T = 2*p_T/√s ,p_T the transverse momentum
+		- M the photon mass in GeV
+		- num the member of the pdf set
+		- mu_factor that describes mu = p_T*mu_factor (same for mu_f_factor)
+		- iso the isospin variable (='p' by default)
+		- n_f the number of flavours (=3 by default)
+		- is_pp a booleen (=False by default) to tell the collision type
+		- switch the convention of p_T integration (= 'dp_t' by default)
+		- eps the minimun delta_y can value
+		- var_int (str) the integration variable (="nu" by default)
+		- q0 the transport coefficient
+		as:
+			[(sigma_FCEL,err_sigma_FCEL),
+			(sigma_FCEG,err_sigma_FCEG)]'''
+		if eps<=0:
+			raise ValueError("eps <= 0, leading to integration error.")
+		else:
+			A = self.A
+			rs = self.rs
+			p_T = rs*x_T/2.
+			M_T = np.sqrt(M**2+p_T**2)
+			b = (M/p_T)**2
+			alpha_s = 0.5														# don't use the pdf one, bc the energy scale here is sqrt(q_hat*L)
+			Fc_FCEG = -1./N_c
+			prob_FCEG = prob.proba(A,1.,rs,p_T,y,alpha_s,Fc_FCEG,M,q0)
+			sigma_hat = lambda xi: prob_FCEG.sigma_hat(xi)
+			delta_y_FCEL_max = lambda xi: min(np.log(rs*xi/M_T)-y,np.log(2))
+			delta_y_FCEG_max = lambda xi: min(y+np.log((1-xi+tau(xi,b))*rs/M_T),np.log(2))
+			delta_y_min = eps
+			if var_int == 'nu':
+				max_FCEL = lambda xi: np.log((np.exp(delta_y_FCEL_max(xi))-1.)/sigma_hat(xi))
+				max_FCEG = lambda xi: np.log((np.exp(delta_y_FCEG_max(xi))-1.)/sigma_hat(xi))
+				if delta_y_min > 1e-15:
+					min_FCEL = lambda xi: np.log((np.exp(delta_y_min)-1)/sigma_hat(xi))
+					min_FCEG = lambda xi: np.log((np.exp(delta_y_min)-1)/sigma_hat(xi))
+				elif delta_y_min > 0:
+					min_FCEL = lambda xi: np.log(delta_y_min/sigma_hat(xi))
+					min_FCEG = lambda xi: np.log(delta_y_min/sigma_hat(xi))
+			elif var_int == 'nu2':
+				min_FCEL = lambda xi: -1*np.log((np.exp(delta_y_FCEL_max(xi))-1.)/sigma_hat(xi))
+				min_FCEG = lambda xi: -1*np.log((np.exp(delta_y_FCEG_max(xi))-1.)/sigma_hat(xi))
+				if delta_y_min > 1e-15:
+					max_FCEL = lambda xi: -1*np.log((np.exp(delta_y_min)-1)/sigma_hat(xi))
+					max_FCEG = lambda xi: -1*np.log((np.exp(delta_y_min)-1)/sigma_hat(xi))
+				elif delta_y_min > 0:
+					max_FCEL = lambda xi: -1*np.log(delta_y_min/sigma_hat(xi))
+					max_FCEG = lambda xi: -1*np.log(delta_y_min/sigma_hat(xi))
+			elif var_int == 'delta':
+				max_FCEL = delta_y_FCEL_max
+				max_FCEG = delta_y_FCEG_max
+				min_FCEL = lambda xi:delta_y_min
+				min_FCEG = lambda xi:delta_y_min
+			Integrand_FCEL = self.FCEL_integrand_M(y,x_T,M,num,mu_factor,mu_f_factor,iso,n_f,switch,var_int=var_int,q0=q0)
+			Int_FCEL = integrate.quad(lambda xi: integrate.quad(lambda nu: Integrand_FCEL(nu,xi,min_FCEL(xi)),min_FCEL(xi),max_FCEL(xi))[0],Xi_min_M(y,x_T,b),Xi_max_M(y,x_T,b))
+			Integrand_FCEG = self.FCEG_integrand_M(y,x_T,M,num,mu_factor,mu_f_factor,n_f,switch,var_int=var_int,q0=q0)
+			Int_FCEG = integrate.quad(lambda xi: integrate.quad(lambda nu: Integrand_FCEG(nu,xi,min_FCEG(xi)),min_FCEG(xi),max_FCEG(xi))[0],Xi_min_M(y,x_T,b),Xi_max_M(y,x_T,b))
 			sigma_FCEL = conv_fact*Int_FCEL[0]
 			err_sigma_FCEL = conv_fact*Int_FCEL[1]
 			sigma_FCEG = conv_fact*Int_FCEG[0]

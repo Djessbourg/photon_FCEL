@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 
 # =============================================================================
-# File for computing R_pA of each process l
-# with the R_pA of the entire direct photon processus.
-# Last modified: 30/11/2025
+# Annex file to understand the choce of the PDF set 
+# last modified : 6/02/2026
 # =============================================================================
 
 import sys
@@ -22,7 +21,7 @@ rs = 8800
 # rs = 200
 s = (rs)**2 # CM energy in Gev2
 
-proton = ['NNPDF40_nlo_as_01180','MSHT20nlo_as118','CT18NLO']
+proton = ['NNPDF40_nlo_as_01180','MSHT20nlo_as118','CT18NLO'] # Here put whatever PDF_set you want to compare 
 
 Pb = "nNNPDF30_nlo_as_0118_A208_Z82"
 
@@ -40,64 +39,86 @@ for prot in proton:
 d = sig.Switch
 
 #Kinematics
-p_T = 5 #GeV
+p_T = 100 #GeV
 mu_f_2 = p_T**2											
 
 # Plot characteristics
 f_size = 17
 alph = 0.5
 X = np.logspace(-5,-1,100)
+def delta_ref(ref,data):
+    ref = np.array(ref)
+    data = np.array(data)
+    return (data)/ref
 
+colors = ['blue','orange','green']
 # Gluon pdf
 
 Tot_G_p = []
+cen_G_p = []
 for i,prot in enumerate(proton):
     sigma_p = PDF[i]
     p_set = sigma_p.p_set
     G_p=[]
-    for num in range(p_set.size): 
+    for num in range(p_set.size):
+        if num == 0:
+            cen_G_p.append([sigma_p.Gluon_p(x,mu_f_2,num) for x in X])
+            continue
         g_p = [sigma_p.Gluon_p(x,mu_f_2,num) for x in X]
         G_p.append(g_p)
     (G_p_min, G_p_max)=sig.min_max(G_p)
     Tot_G_p.append((G_p_min, G_p_max))
 
-fig, ax = plt.subplots(constrained_layout=True)
+
+
+fig, ax = plt.subplots()
+ref  = cen_G_p[0]
 for i,prot in enumerate(proton):
-    plt.fill_between(X,Tot_G_p[i][0],Tot_G_p[i][1],alpha =alph, label= prot)
+    cen =  cen_G_p[i]
+    (p_min,p_max) = Tot_G_p[i]
+    plt.fill_between(X,delta_ref(ref,p_min),delta_ref(ref,p_max),alpha =alph, color=colors[i], label= prot)
+    # plt.plot(X,delta_ref(ref,cen))
 plt.legend()
 plt.xscale('log')
-plt.yscale('log')
-plt.title("gluon pdf set compared")
-plt.text(0.1, 0.1, r'$Q^2 = 25$ GeV$^2$', horizontalalignment='center', verticalalignment='center',transform=ax.transAxes)
+# plt.yscale('log')
+# plt.title("gluon pdf set compared")
+plt.text(0.8, 0.1, r'$Q^2 =$'+str(mu_f_2)+r' GeV$^2$', horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize = f_size)
 plt.xlabel(r'x')
-plt.ylabel(r'$F_2(x,Q^2)$')
+plt.ylabel(r'$G(x,Q^2)/G_{[ref]}(x,Q^2)$')
+plt.savefig(os.path.join(plots_dir, 'gluon_proton_set_comparison_rs'+str(rs)+'_P_T'+str(p_T)+'.pdf'))
 plt.show()
-plt.savefig(os.path.join(plots_dir, 'gluon_proton_pdf_set_comparison_rs'+str(rs)+'_P_T'+str(p_T)+'.pdf'))
 plt.close()
 
-# Gluon pdf
+# F_2 pdf
 
 Tot_F_2 = []
+cen_F_2 = []
 for i,prot in enumerate(proton):
     sigma_p = PDF[i]
     p_set = sigma_p.p_set
     F_2=[]
-    for num in range(p_set.size): 
+    for num in range(p_set.size):
+        if num == 0:
+            cen_F_2.append([sigma_p.F2_p(x,mu_f_2,num) for x in X])
+            continue
         f_2 = [sigma_p.F2_p(x,mu_f_2,num) for x in X]
         F_2.append(f_2)
     (F_2_min, F_2_max)=sig.min_max(F_2)
     Tot_F_2.append((F_2_min, F_2_max))
 
-fig, ax = plt.subplots(constrained_layout=True)
+fig, ax = plt.subplots()
+ref  = cen_F_2[0]
 for i,prot in enumerate(proton):
-    plt.fill_between(X,Tot_F_2[i][0],Tot_F_2[i][1],alpha =alph, label= prot)
+    cen =  cen_F_2[i]
+    (p_min,p_max) = Tot_F_2[i]
+    plt.fill_between(X,delta_ref(ref,p_min),delta_ref(ref,p_max),alpha =alph, color=colors[i], label= prot)
 plt.legend()
-plt.xscale('log')
-plt.yscale('log')
-plt.title('F_2 pdf set compared')
+plt.xscale('log') 
+# plt.yscale('log')
+# plt.title('F_2 pdf set compared')
 plt.xlabel(r'x')
-plt.ylabel(r'$F_2(x,Q^2)$')
-plt.text(0.1, 0.1, r'$Q^2 = 25$ GeV$^2$', horizontalalignment='center', verticalalignment='center',transform=ax.transAxes)
+plt.ylabel(r'$F_2(x,Q^2)/F_{2,[ref]}(x,Q^2)$')
+plt.text(0.8, 0.1, r'$Q^2 =$ '+str(mu_f_2)+' GeV$^2$', horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize = f_size)
+plt.savefig(os.path.join(plots_dir, 'F_2_proton_set_comparison_rs'+str(rs)+'_P_T'+str(p_T)+'.pdf'))
 plt.show()
-plt.savefig(os.path.join(plots_dir, 'F_2_proton_pdf_set_comparison_rs'+str(rs)+'_P_T'+str(p_T)+'.pdf'))
 plt.close()
