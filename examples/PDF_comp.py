@@ -2,7 +2,7 @@
 
 # =============================================================================
 # Annex file to understand the choce of the PDF set 
-# last modified : 6/02/2026
+# last modified : 9/02/2026
 # =============================================================================
 
 import sys
@@ -39,7 +39,7 @@ for prot in proton:
 d = sig.Switch
 
 #Kinematics
-p_T = 100 #GeV
+p_T = 5 #GeV
 mu_f_2 = p_T**2											
 
 # Plot characteristics
@@ -120,5 +120,110 @@ plt.xlabel(r'x')
 plt.ylabel(r'$F_2(x,Q^2)/F_{2,[ref]}(x,Q^2)$')
 plt.text(0.8, 0.1, r'$Q^2 =$ '+str(mu_f_2)+' GeV$^2$', horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize = f_size)
 plt.savefig(os.path.join(plots_dir, 'F_2_proton_set_comparison_rs'+str(rs)+'_P_T'+str(p_T)+'.pdf'))
+plt.show()
+plt.close()
+
+# u+ubar pdf
+
+Tot_U = []
+cen_U = []
+for i,prot in enumerate(proton):
+    sigma_p = PDF[i]
+    p_set = sigma_p.p_set
+    U=[]
+    for num in range(p_set.size):
+        p_pdf = sigma_p.pdf_p(num)
+        if num == 0:
+            cen_U.append([p_pdf.xfxQ2(-sig.particle['u']['id'],x,mu_f_2)+p_pdf.xfxQ2(sig.particle['u']['id'],x,mu_f_2) for x in X])
+            continue
+        u = [p_pdf.xfxQ2(-sig.particle['u']['id'],x,mu_f_2)+p_pdf.xfxQ2(sig.particle['u']['id'],x,mu_f_2)for x in X]
+        U.append(u)
+    (U_min, U_max)=sig.min_max(U)
+    Tot_U.append((U_min, U_max))
+
+fig, ax = plt.subplots()
+ref  = cen_U[0]
+for i,prot in enumerate(proton):
+    cen =  cen_U[i]
+    (p_min,p_max) = Tot_U[i]
+    plt.fill_between(X,delta_ref(ref,p_min),delta_ref(ref,p_max),alpha =alph, color=colors[i], label= prot)
+plt.legend()
+plt.xscale('log') 
+# plt.yscale('log')
+# plt.title('F_2 pdf set compared')
+plt.xlabel(r'x')
+plt.ylabel(r'$(u+\bar{u})(x,Q^2)/(u+\bar{u})_{[ref]}(x,Q^2)$')
+plt.text(0.8, 0.1, r'$Q^2 =$ '+str(mu_f_2)+' GeV$^2$', horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize = f_size)
+plt.savefig(os.path.join(plots_dir, 'u_u_bar_proton_set_comparison_rs'+str(rs)+'_P_T'+str(p_T)+'.pdf'))
+plt.show()
+plt.close()
+
+# d+d bar pdf
+
+Tot_D = []
+cen_D = []
+for i,prot in enumerate(proton):
+    sigma_p = PDF[i]
+    p_set = sigma_p.p_set
+    D=[]
+    for num in range(p_set.size):
+        p_pdf = sigma_p.pdf_p(num)
+        if num == 0:
+            cen_D.append([p_pdf.xfxQ2(-sig.particle['d']['id'],x,mu_f_2)+p_pdf.xfxQ2(sig.particle['d']['id'],x,mu_f_2) for x in X])
+            continue
+        d = [p_pdf.xfxQ2(-sig.particle['d']['id'],x,mu_f_2)+p_pdf.xfxQ2(sig.particle['d']['id'],x,mu_f_2)for x in X]
+        D.append(d)
+    (D_min, D_max)=sig.min_max(D)
+    Tot_D.append((D_min, D_max))
+
+fig, ax = plt.subplots()
+ref  = cen_D[0]
+for i,prot in enumerate(proton):
+    cen =  cen_D[i]
+    (p_min,p_max) = Tot_D[i]
+    plt.fill_between(X,delta_ref(ref,p_min),delta_ref(ref,p_max),alpha =alph, color=colors[i], label= prot)
+plt.legend()
+plt.xscale('log') 
+# plt.yscale('log')
+# plt.title('F_2 pdf set compared')
+plt.xlabel(r'x')
+plt.ylabel(r'$(d+\bar{d})(x,Q^2)/(d+ \bar{d})_{[ref]}(x,Q^2)$')
+plt.text(0.8, 0.1, r'$Q^2 =$ '+str(mu_f_2)+' GeV$^2$', horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize = f_size)
+plt.savefig(os.path.join(plots_dir, 'd_d_bar_proton_set_comparison_rs'+str(rs)+'_P_T'+str(p_T)+'.pdf'))
+plt.show()
+plt.close()
+
+# s pdf
+
+Tot_S = []
+cen_S = []
+for i,prot in enumerate(proton):
+    sigma_p = PDF[i]
+    p_set = sigma_p.p_set
+    S = []
+    for num in range(p_set.size):
+        p_pdf = sigma_p.pdf_p(num)
+        if num == 0:
+            cen_S.append([p_pdf.xfxQ2(sig.particle['s']['id'],x,mu_f_2) for x in X])
+            continue
+        s = [p_pdf.xfxQ2(sig.particle['s']['id'],x,mu_f_2)for x in X]
+        S.append(s)
+    (S_min, S_max)=sig.min_max(S)
+    Tot_S.append((S_min, S_max))
+
+fig, ax = plt.subplots()
+ref  = cen_S[0]
+for i,prot in enumerate(proton):
+    cen =  cen_S[i]
+    (p_min,p_max) = Tot_S[i]
+    plt.fill_between(X,delta_ref(ref,p_min),delta_ref(ref,p_max),alpha =alph, color=colors[i], label= prot)
+plt.legend()
+plt.xscale('log') 
+# plt.yscale('log')
+# plt.title('F_2 pdf set compared')
+plt.xlabel(r'x')
+plt.ylabel(r'$s(x,Q^2)/s_{[ref]}(x,Q^2)$')
+plt.text(0.8, 0.1, r'$Q^2 =$ '+str(mu_f_2)+' GeV$^2$', horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize = f_size)
+plt.savefig(os.path.join(plots_dir, 's_proton_set_comparison_rs'+str(rs)+'_P_T'+str(p_T)+'.pdf'))
 plt.show()
 plt.close()

@@ -1574,7 +1574,7 @@ class Sigma:
 		A = float(self.A)
 		R_iso = (sigma_pn/sigma_pp)*(1-Z/A)
 		err_R_iso = R_iso*((err_pp/sigma_pp)**2+(err_pn/sigma_pn)**2)**0.5
-		return(R_iso+(Z/A),err_R_iso)
+		return (R_iso+(Z/A),err_R_iso)
 		
 	def R_iso_dpt(self,y,num,mu_factor = 1,mu_f_factor = 1,n_f=3,switch='dp_t'):
 		'''Return the ratio of the reconstruction of the nucleide target as 
@@ -3005,7 +3005,8 @@ class Sigma:
 		if not('mu' in var_err) and ('pdf'in var_err):
 			Ucen = Ucen_pdf
 		elif not('mu' in var_err) and not('pdf'in var_err):
-			raise ValueError("no error variable adequate to this function")
+			print(Warning('no error variable indicated') ) 
+			Ucen = R_cen
 		Uplus = np.sqrt(Uplus_mu**2+Uplus_pdf**2)
 		Uminus = np.sqrt(Uminus_mu**2+Uminus_pdf**2)
 		return[Ucen,(Uplus,Uminus),[Uplus_mu,Uminus_mu,Uplus_pdf,Uminus_pdf]]
@@ -3026,7 +3027,7 @@ class Sigma:
 		Fnp_plus, Fnp_minus = A/(A-Z)*Riso_plus, A/(A-Z)*Riso_minus 
 		Rpp ,err_Rpp, err_var_Rpp = self.Uncertainties_RpA_dy(x_T,mu_factor=mu_factor,mu_f_factor=mu_f_factor,n_f=n_f,switch =switch,eps = eps,var_int=var_int,var_err=var_err)
 		Rpp_plus,Rpp_minus = err_Rpp[0],err_Rpp[1]
-		Rpn ,err_Rpn, err_var_Rpn = self.Uncertainties_RpA_dy(x_T,mu_factor=mu_factor,mu_f_factor=mu_f_factor,n_f=n_f,switch =switch,eps = eps,var_int=var_int,var_err=var_err)
+		Rpn ,err_Rpn, err_var_Rpn = self.Uncertainties_RpA_dy(x_T,mu_factor=mu_factor,mu_f_factor=mu_f_factor,iso ='n',n_f=n_f,switch =switch,eps = eps,var_int=var_int,var_err=var_err)
 		Rpn_plus,Rpn_minus = err_Rpn[0],err_Rpn[1]
 		Riso_FCELG = (Z/A)*(Rpp-Fnp*Rpn)+Fnp*Rpn
 		Riso_FCELG_plus,Riso_FCELG_minus=  ((Rpp_plus*Z/A)**2+(Fnp_plus**2+Rpn_plus**2)*(1-Z/A)**2)**0.5, ((Rpp_minus*Z/A)**2+(Fnp_minus**2+Rpn_minus**2)*(1-Z/A)**2)**0.5
