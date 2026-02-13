@@ -4,7 +4,7 @@
 # Study the first impacts of compton QCD diagrams and annihilation 
 # to parton luminosity with the sigma class.
 # Study on RpA and isospin effects.
-# last modified: 17/11/2025
+# last modified: 13/02/2026
 # =============================================================================
 
 import sys
@@ -22,7 +22,7 @@ from src import Collision
 # rs = 200
 rs = 8800
 s = (rs)**2 # CM energy in Gev2
-proton = "NNPDF40_lo_as_01180"
+proton = "NNPDF40_nlo_as_01180"
 Pb = "nNNPDF30_nlo_as_0118_A208_Z82"
 
 Atom = sig.Atom
@@ -53,7 +53,6 @@ f_size = 17
 alph = 0.3
 convention = 'd2p_t'
 col_type = 'pp'
-err = 'mu,pdf'															# variables to compute error from 
 
 def plot_usuals(n=1,s1=f_size,s2=f_size,loca = 'best'):
 	plt.legend(frameon= False, fontsize = s1,ncols=n,loc=loca )
@@ -251,17 +250,20 @@ def plot_usuals(n=1,s1=f_size,s2=f_size,loca = 'best'):
 ### Ratios ###
 # FCEL/G
 # y dependant
-err ='q0,mu,pdf'
+# err ='q0,mu,pdf'
+err = 'mu'
 RpA_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), 'RpA_dir')) # the direcory to save data from this file
 a=2
 
-f_name = 'RpA_'+str(rs)+'GeV_Z'+str(Z)+'_A'+str(A)+convention+str(p_T)+'GeV.txt'
+# f_name = 'RpA_'+str(rs)+'GeV_Z'+str(Z)+'_A'+str(A)+convention+str(p_T)+'GeV.txt'
+f_name = proton+'_RpA_wo_iso_'+str(rs)+'GeV_Z'+str(Z)+'_A'+str(A)+str(p_T)+'GeV.txt'
 if os.path.exists(os.path.join(RpA_dir,f_name)):
 	print(f"The file '{f_name}' already exists. It is loaded.")
 	Rpa ,Rpa_plus,Rpa_minus, Rpa_plus_q,Rpa_minus_q,Rpa_plus_mu,Rpa_minus_mu,Rpa_plus_pdf,Rpa_minus_pdf = np.loadtxt(os.path.join(RpA_dir,f_name))
 else:
 	print("The file does not exists")
-	Rpa ,err_Rpa, err_var_Rpa = pPb_cross_section.Uncertainties_RpA_dy(x_T,switch = convention,var_err= err)
+	# Rpa ,err_Rpa, err_var_Rpa = pPb_cross_section.Uncertainties_RpA_dy(x_T,switch = convention,var_err= err)
+	Rpa ,err_Rpa, err_var_Rpa = pPb_cross_section.Uncertainties_RpA_wo_iso_dy(x_T,switch=convention,var_err=err)
 	Rpa_plus,Rpa_minus = err_Rpa[0],err_Rpa[1]
 	Rpa_plus_q,Rpa_minus_q,Rpa_plus_mu,Rpa_minus_mu,Rpa_plus_pdf,Rpa_minus_pdf= err_var_Rpa[0],err_var_Rpa[1],err_var_Rpa[2],err_var_Rpa[3],err_var_Rpa[4],err_var_Rpa[5]
 	r = [Rpa,Rpa_plus,Rpa_minus,Rpa_plus_q,Rpa_minus_q,Rpa_plus_mu,Rpa_minus_mu,Rpa_plus_pdf,Rpa_minus_pdf]
@@ -287,14 +289,14 @@ plt.plot(Y,Rpa,color='blue')
 
 plt.legend(loc='lower right',frameon =False,fontsize=f_size-a)
 plt.xlabel('y',fontsize=f_size-a)
-plt.ylabel(r'$R_{pA}^{dir}$',fontsize= f_size)
+plt.ylabel(r'$R_{\text{pA}}^{\text{dir}}$',fontsize= f_size)
 plt.ylim(0.8,1.1)
 # plt.xlim(-4,4)
 plot_usuals(s1=f_size,s2=f_size,loca = 'lower right')
 ax.set_aspect(1.0/ax.get_data_ratio(), adjustable='box')
-plt.text(0.5, 0.9, proton + " p-"+atom, horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize=f_size-a)
-plt.text(0.2, 0.2, r'$\sqrt{s} =$'+str(rs/1000) +r' $TeV$', horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize=f_size)
-plt.text(0.2, 0.1, r'$p_\bot =$'+str(p_T) +r' $GeV$', horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize=f_size)
+plt.text(0.5, 0.9, proton + " p-"+atom, horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize=f_size-a)
+plt.text(0.2, 0.2, r'$\sqrt{s} =$'+str(rs/1000) +r' TeV', horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize=f_size)
+plt.text(0.2, 0.1, r'$p_\bot =$'+str(p_T) +r' GeV', horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize=f_size)
 plt.tight_layout()
 plt.savefig(os.path.join(plots_dir, 'RpA_'+str(rs)+'GeV_Z'+str(Z)+'_A'+str(A)+convention+str(p_T)+'GeV.pdf'),bbox_inches="tight")
 plt.show()

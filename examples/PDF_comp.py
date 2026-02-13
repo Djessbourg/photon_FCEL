@@ -2,7 +2,7 @@
 
 # =============================================================================
 # Annex file to understand the choce of the PDF set 
-# last modified : 9/02/2026
+# last modified : 13/02/2026
 # =============================================================================
 
 import sys
@@ -21,7 +21,7 @@ rs = 8800
 # rs = 200
 s = (rs)**2 # CM energy in Gev2
 
-proton = ['NNPDF40_nlo_as_01180','MSHT20nlo_as118','CT18NLO'] # Here put whatever PDF_set you want to compare 
+proton = ['NNPDF40_nlo_as_01180'] #,'MSHT20nlo_as118','CT18NLO' Here put whatever PDF_set you want to compare 
 
 Pb = "nNNPDF30_nlo_as_0118_A208_Z82"
 
@@ -40,6 +40,7 @@ d = sig.Switch
 
 #Kinematics
 p_T = 5 #GeV
+# p_T = 2 
 mu_f_2 = p_T**2											
 
 # Plot characteristics

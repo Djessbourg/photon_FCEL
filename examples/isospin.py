@@ -3,7 +3,7 @@
 # =============================================================================
 # Ploting R_pA without isosspin effect and comparing different RpA from
 # different sets of PDF
-# Last modified: 9/02/2026
+# Last modified: 13/02/2026
 # =============================================================================
 
 import sys
@@ -72,27 +72,27 @@ for i,prot in enumerate(proton):
 
 Y = sig.Y_list(x_T)
 # Comparing for each pdf set the 4 ratios in the paper
-# for i,prot in enumerate(proton):
-#     fig, ax = plt.subplots(constrained_layout=True)
-#     ax.xaxis.set_minor_locator(MultipleLocator(1))
-#     ax.xaxis.set_major_locator(MultipleLocator(2))
-#     RpA, Rpp_iso, R_pA_iso, R_pA_wo_iso = RpA4[i]
-#     plt.plot(Y,RpA,label='RpA clasic')
-#     plt.plot(Y,Rpp_iso, label='iso')
-#     plt.plot(Y,R_pA_iso,label='iso+FCEL')
-#     plt.plot(Y,R_pA_wo_iso,label='FCEL w/o iso')
-#     plt.axhline(y=1, color='grey', alpha=0.3)
-#     plot_usuals(n=2,loca='upper center',s1=f_size-a)
-#     plt.xlabel(r'$y$',fontsize=f_size)
-#     plt.ylim(0.8,1.1)
-#     plt.tight_layout()
-#     plt.text(0.6, 0.1, prot , horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-a)
-#     plt.text(0.75, 0.2,r'$p_\bot =$ '+str(p_T)+' GeV',horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-a) 
-#     plt.text(0.75, 0.3,r'$\sqrt{s} =$ '+str(rs/1000)+' TeV',horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-a)
-#     ax.set_aspect(1.0/ax.get_data_ratio(), adjustable='box')
-#     plt.savefig(os.path.join(plots_dir, prot+'_Riso_'+str(rs)+'GeV_Z'+str(Z)+'_A'+str(A)+'_p_T'+str(p_T)+'GeV_M'+'.pdf'))
-#     plt.show()
-#     plt.close()
+for i,prot in enumerate(proton):
+    fig, ax = plt.subplots(constrained_layout=True)
+    ax.xaxis.set_minor_locator(MultipleLocator(1))
+    ax.xaxis.set_major_locator(MultipleLocator(2))
+    RpA, Rpp_iso, R_pA_iso, R_pA_wo_iso = RpA4[i]
+    plt.plot(Y,RpA,label='RpA clasic')
+    plt.plot(Y,Rpp_iso, label='iso')
+    plt.plot(Y,R_pA_iso,label='iso+FCEL')
+    plt.plot(Y,R_pA_wo_iso,label='FCEL w/o iso')
+    plt.axhline(y=1, color='grey', alpha=0.3)
+    plot_usuals(n=2,loca='upper center',s1=f_size-a)
+    plt.xlabel(r'$y$',fontsize=f_size)
+    plt.ylim(0.8,1.1)
+    plt.tight_layout()
+    plt.text(0.6, 0.1, prot , horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-a)
+    plt.text(0.75, 0.2,r'$p_\bot =$ '+str(p_T)+' GeV',horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-a) 
+    plt.text(0.75, 0.3,r'$\sqrt{s} =$ '+str(rs/1000)+' TeV',horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-a)
+    ax.set_aspect(1.0/ax.get_data_ratio(), adjustable='box')
+    plt.savefig(os.path.join(plots_dir, prot+'_Riso_'+str(rs)+'GeV_Z'+str(Z)+'_A'+str(A)+'_p_T'+str(p_T)+'GeV_M'+'.pdf'))
+    plt.show()
+    plt.close()
 
 # Comparing the RpA without isospin effect for the different pdf set on the same figure	
 # 						
