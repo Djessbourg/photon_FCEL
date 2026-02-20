@@ -60,6 +60,11 @@ Z_to_ylim = {
 	79:4.5
 }
 
+Z_to_p_Tlim ={
+	82:(3,15),
+	79:(2,6)
+}
+
 id_to_charge = {v["id"]: v["charge"] for v in particle.values()}
 
 def charge(particle_id):
@@ -165,10 +170,18 @@ def min_max(ys):
 	return (y_min,y_max)
 
 def derivative_func(f,x,h=10**(-1)):
-	'''Simple derivative function for taylor approximation bc scipy one is awfully done'''
 	return (f(x+h) - f(x-h)) / (2*h)
 
-def derivative_array(L,Y):
+def derivative_array(L:list,Y:list)-> np.array:
+	"""Creating increase rates array
+
+	Args:
+		L (list): Image vector
+		Y (list): Absisces vector
+
+	Returns:
+		np.array: Increase rates vector
+	"""
 	R = []
 	# first term 
 	R.append((L[0]-L[1])/(Y[0]-Y[1]))
@@ -202,13 +215,21 @@ def Collision(string):
 		raise ValueError("The argument must be 'pp' or 'pA'")
 
 class Sigma:
-	'''To initialize the sigma object :
-		- p_set (string) is the name of the proton pdf in the lhapdf list
-		- A_set (string) is the name of the nuclei pdf in the lhapdf list (put a random one for pp collisions)
-		- s (float) is the Mandelstam variable for CM collisions  (in GeV^2)
-		- Z (integer) is the Atomic number of the chosen nuclei
-		- A (integer) is the total nucleon number of the chosen nuclei'''
-	def __init__(self, p_set, A_set, s, Z, A):
+	def __init__(self, p_set:str, A_set:str, s:float, Z:int, A:int):
+		"""
+		To initialize Sigma object
+		
+		:param p_set: Name of the proton PDF set
+		:type p_set: str
+		:param A_set: Name of the nuclei nPDF set 
+		:type A_set: str
+		:param s: Mandelstam center of mass energy squared
+		:type s: float
+		:param Z: Atomic number of the nuclei
+		:type Z: int
+		:param A: Mass number of the nuclei
+		:type A: int
+		"""
 		self.p_set = lha.getPDFSet(p_set)										# set of pdf for the projectile (with the pdf name as a string) 
 		self.A_set = lha.getPDFSet(A_set)				 						# same for target
 		self.s = float(s) 														# center of mass energy
@@ -255,10 +276,17 @@ class Sigma:
 		
 	### init functions ###
 	
-	def pdf_p(self,num):
-		'''Redefine the current pdf of the projectile (proton) for a certain 
+	def pdf_p(self ,num: int)->lha.PDF:
+		"""
+		Redefine the current pdf of the projectile (proton) for a certain 
 		member number of the set (if it is different from the current one) 
-		and return the new current proton pdf set'''
+		and return the new current proton pdf set
+		
+		:param num: Member number of the PDF set
+		:type num: int
+		:return: The PDF member associated with 'num' 
+		:rtype: lha.PDF
+		"""
 		Num = self.current_p_num
 		size = self.p_set.size
 		if num < 0 or num > size:
@@ -269,10 +297,17 @@ class Sigma:
 			self.current_p = p[num]
 		return self.current_p
 	
-	def pdf_A(self,num):
-		'''Redefine the current pdf of the target (nuclei) for a certain member
+	def pdf_A(self,num : int)->lha.PDF:
+		"""
+		Redefine the current pdf of the target (nuclei) for a certain member
 		number of the set (if it is different from the current one) 
-		and return the new current nuclei pdf set'''
+		and return the new current nuclei pdf set
+		
+		:param num: Member number of the nPDF set
+		:type num: int
+		:return: the nPDF member associated with 'num' 
+		:rtype: lha.PDF
+		"""
 		Num = self.current_A_num
 		size = self.A_set.size
 		if num < 0 or num > size:
@@ -283,30 +318,74 @@ class Sigma:
 			self.current_A = A[num]
 		return self.current_A
 		
-	def alpha_s_A(self,num,mu2):
-		'''return alpha_s for the nuclei at mu2'''
+	def alpha_s_A(self,num:int,mu2:float)->float:
+		"""
+		Return the strong coulping constant for the nuclei nPDF
+		
+		:param num: Member number of the nPDF set
+		:type num: int
+		:param mu2: Energy scale squared
+		:type mu2: float
+		:return: 
+		:rtype: float
+		"""
 		A_num = self.pdf_A(num)
 		return A_num.alphasQ2(mu2)
 	
-	def alpha_s_p(self,num,mu2):
+	def alpha_s_p(self,num:int,mu2:float)->float:
+		"""
+		Return the strong coulping constant for the proton PDF
+		
+		:param num: Member number of the PDF set
+		:type num: int
+		:param mu2: Energy scale squared
+		:type mu2: float
+		:return: 
+		:rtype: float
+		"""
 		'''return alpha_s for the proton at mu2'''
 		p_num = self.pdf_p(num)
 		return p_num.alphasQ2(mu2)
 		
-	def n_xfxQ2(self,particle_id,x,mu_f2,num):
-		'''return the pdf of the neutron with the mu_f2 parameter'''
+	def n_xfxQ2(self,particle_id:int,x:float,mu_f2:float,num:int)->float:
+		"""
+		Return the value of the neutron PDF (x*f(x)) for a given particle id, x and energy scale
+		
+		:param particle_id: Id of the particle of interest (e.g. d = 1, d_bar = -1)
+		:type particle_id: int
+		:param x: Momentum fraction
+		:type x: float
+		:param mu_f2: Energy scale scared (pdf)
+		:type mu_f2: float
+		:param num: Member number of the PDF set
+		:type num: int
+		:return:
+		:rtype: float
+		"""
 		p = self.pdf_p(num)
 		if np.abs(particle_id) >= 3:
 			return p.xfxQ2(particle_id,x,mu_f2)
 		else :
 			return p.xfxQ2(2//particle_id,x,mu_f2)								# Math trick using euclide division to make 1->2 and 2->1
 	
-	def F2_p(self,x,mu_f2,num,iso = 'p',n_f=3):
-		'''gives back the F2 function of the proton for an x and a mu_f2 given.
-		- the iso argument stands for isospin, i.e chose if it uses proton
-		or neutron pdf 
-		- the n_f argument stands for the number of flavours taken in count
-		(by default, it is 3: u,d,s)'''
+	def F2_p(self,x:float,mu_f2:float,num:int,iso:str = 'p',n_f:int=3)->float:
+		"""
+
+		Gives back the F2 function of the proton for an x and a mu_f2 given
+		
+		:param x: Momentum fraction
+		:type x: float
+		:param mu_f2: Energy scale squared (pdf)
+		:type mu_f2: float
+		:param num: Member number of the PDF set 
+		:type num: int
+		:param iso: 'p' by default. Isospin equivalent of F2 for the neutron with 'n'
+		:type iso: str
+		:param n_f: 3 by default. Number of quark flavour
+		:type n_f: int
+		:return:
+		:rtype: float
+		"""
 		F = 0.
 		if iso == 'p':
 			p = self.pdf_p(num)
@@ -317,18 +396,50 @@ class Sigma:
 				F += (charge(i)**2)*(self.n_xfxQ2(i,x,mu_f2,num)+self.n_xfxQ2(-i,x,mu_f2,num))
 		return F/x
 	
-	def F2_A(self,x,mu_f2,num,n_f=3):
-		'''gives back the F2 function of the target nuclide for an x and a mu_f2 given
-		- the n_f argument stands for the number of flavours taken in count
-		(by default, it is 3: u,d,s)'''
+	def F2_A(self,x:float,mu_f2:float,num:int,n_f:int=3)->float:
+		"""
+		Gives back the F2 function of the nuclei for an x and a mu_f2 given
+		
+		:param x: Momentum fraction
+		:type x: float
+		:param mu_f2: Energy scale squared (pdf)
+		:type mu_f2: float
+		:param num: Member number of the nPDF set 
+		:type num: int
+		:param n_f: 3 by default. Number of quark flavour
+		:type n_f: int
+		:return:
+		:rtype: float
+		"""
 		F = 0.
 		A = self.pdf_A(num)
 		for i in range(1,n_f+1):
 			F += (charge(i)**2)*(A.xfxQ2(i,x,mu_f2)+A.xfxQ2(-i,x,mu_f2))
 		return F/x
 	
-	def F_ij(self,xa,xb,mu_f2,num, direction = 'qqbar',iso='p',n_f=3,is_pp = False):
-		'''return the F_ij function that appears in the annihilation process'''
+	def F_ij(self,xa:float,xb:float,mu_f2:float,num:int, direction:str = 'qqbar',iso:str='p',n_f:int=3,is_pp:bool = False)->float:
+		"""
+		Return the F_ij function that appears in the annihilation process
+		
+		:param xa: Momentum fraction of the projectile (proton) parton
+		:type xa: float
+		:param xb: Momentum fraction of the target (nuclei/neutron/proton) parton
+		:type xb: float
+		:param mu_f2: Energy scale squared (pdf)
+		:type mu_f2: float
+		:param num: Member number of the pdf set
+		:type num: int
+		:param direction: 'qqbar' by default. Can be 'qbarq' to describe the other initial state
+		:type direction: str
+		:param iso: 'p' by default. Isospin equivalent of F2 for the neutron with 'n'
+		:type iso: str
+		:param n_f: 3 by default. Number of quark flavors
+		:type n_f: int
+		:param is_pp: False by default. Be True computed proton/proton(neutron if iso = 'n' )
+		:type is_pp: bool
+		:return:
+		:rtype: float
+		"""
 		F = 0.
 		p = self.pdf_p(num)
 		A = self.pdf_A(num)
@@ -1238,7 +1349,7 @@ class Sigma:
 		if (sP == []) or ( P != sP):											# Re-compute only if it's the first time, or if parameters are differents from the last ones
 			self.tot_pt_parameters = P
 			rs = self.rs
-			P_T = self.P_T_list(y)
+			P_T = self.P_T_list(y,self.Z)
 			sigma = []
 			err_sigma = []
 			for p_t in P_T:
@@ -1265,7 +1376,7 @@ class Sigma:
 		if (sP == []) or (P != sP):
 			self.qG_dpt_parameters = P
 			s = self.s
-			P_T = self.P_T_list(y)
+			P_T = self.P_T_list(y,self.Z)
 			sigma = []
 			err_sigma = []
 			for p_t in P_T:
@@ -1293,7 +1404,7 @@ class Sigma:
 		if (sP == []) or (P != sP):
 			self.Gq_dpt_parameters = P
 			s = self.s
-			P_T = self.P_T_list(y)
+			P_T = self.P_T_list(y,self.Z)
 			sigma = []
 			err_sigma = []
 			for p_t in P_T:
@@ -1321,7 +1432,7 @@ class Sigma:
 		if (sP == []) or (P != sP):
 			self.qqbar_dpt_parameters = P
 			s = self.s
-			P_T = self.P_T_list(y)
+			P_T = self.P_T_list(y,self.Z)
 			sigma = []
 			err_sigma = []
 			for p_t in P_T:
@@ -1349,7 +1460,7 @@ class Sigma:
 		if (sP == []) or (P != sP):
 			self.qbarq_dpt_parameters = P
 			s = self.s
-			P_T = self.P_T_list(y)
+			P_T = self.P_T_list(y,self.Z)
 			sigma = []
 			err_sigma = []
 			for p_t in P_T:
@@ -1491,7 +1602,7 @@ class Sigma:
 		Uplus_mu = []
 		Uminus_mu= []
 		num_cen= 0
-		P_T = self.P_T_list(y)
+		P_T = self.P_T_list(y,self.Z)
 		rs = self.rs
 		factor = [1./2.,2]
 		mu_factor_list = [(i,j) for i in factor for j in factor]
@@ -1868,7 +1979,7 @@ class Sigma:
 		Ucen_Gq, Uplus_Gq, Uminus_Gq, Usym_Gq = [],[],[],[]
 		Ucen_qqbar, Uplus_qqbar, Uminus_qqbar, Usym_qqbar = [],[],[],[]
 		Ucen_qbarq, Uplus_qbarq, Uminus_qbarq, Usym_qbarq = [],[],[],[]
-		P_T = self.P_T_list(y)
+		P_T = self.P_T_list(y,self.Z)
 		rs = self.rs
 		for j in range(len(P_T)):
 			R_qG, R_Gq, R_qqbar, R_qbarq= [],[],[],[]
@@ -1935,7 +2046,7 @@ class Sigma:
 		p = self.p_set
 		Ucen_FCEL, Uplus_FCEL, Uminus_FCEL, Usym_FCEL = [],[],[],[]
 		Ucen_FCEG, Uplus_FCEG, Uminus_FCEG, Usym_FCEG = [],[],[],[]
-		P_T = self.P_T_list(y)
+		P_T = self.P_T_list(y,self.Z)
 		rs = self.rs
 		for j in range(len(P_T)):
 			R_qG, R_Gq, R_qqbar, R_qbarq= [],[],[],[]
@@ -2357,7 +2468,7 @@ class Sigma:
 		if eps<=0:
 			raise ValueError("eps <= 0, leading to integration error.")
 		else:
-			P_T = self.P_T_list(y)
+			P_T = self.P_T_list(y,self.Z)
 			A = self.A
 			rs = self.rs
 			alpha_s = 0.5														# don't use the pdf one, bc the energy scale here is sqrt(q_hat*L)
@@ -2698,7 +2809,7 @@ class Sigma:
 		- for the 2 index the + and - uncertainties for (in order) q0, mu, and pdfs'''
 		p_set = self.p_set
 		Uplus_pdf, Uminus_pdf = [],[]
-		P_T = self.P_T_list(y)
+		P_T = self.P_T_list(y,self.Z)
 		rs = self.rs
 		q_list = [q0_list[1],q0_list[2]]
 		q_val= []
@@ -2817,7 +2928,7 @@ class Sigma:
 			Uplus_q, Uminus_q = np.zeros_like(Y),np.zeros_like(Y)
 		Uplus = np.sqrt(Uplus_q**2+Uplus_mu**2+Uplus_pdf**2)
 		Uminus = np.sqrt(Uminus_q**2+Uminus_mu**2+Uminus_pdf**2)
-		return [Ucen,[Uplus,Uminus],[Uplus_q,Uminus_q,Uplus_mu,Uminus_mu,Uplus_pdf,Uminus_pdf]]
+		return [Y,Ucen,[Uplus,Uminus],[Uplus_q,Uminus_q,Uplus_mu,Uminus_mu,Uplus_pdf,Uminus_pdf]]
 	
 	def Uncertainties_RpA_dpt(self,y,mu_factor=1,mu_f_factor=1,iso='p',n_f=3,switch ='dp_t',eps = 1e-15,var_int='nu',q0_list=[0.07,0.05,0.09],var_err='q0,mu,pdf'):
 		'''Return the uncertinites on the final R_pA (i.e taking in count FCEL
@@ -2839,7 +2950,7 @@ class Sigma:
 		- for the 2 index the + and - uncertainties for (in order) q0, mu, and pdfs'''
 		p_set = self.p_set
 		Uplus_pdf, Uminus_pdf = [],[]
-		P_T = self.P_T_list(y)
+		P_T = self.P_T_list(y,self.Z)
 		rs = self.rs
 		q_list = [q0_list[1],q0_list[2]]
 		q_val= []
@@ -2848,12 +2959,10 @@ class Sigma:
 		mu_val =[]
 		q0_cen =q0_list[0]
 		num_cen = 0
-		pdf_val = []
 		print('Central value')
 		FCEL_cen, FCEG_cen = self.FCEL_G_integration_dpt(y,num_cen,iso=iso,n_f=n_f,switch =switch,eps = eps,mu_factor=mu_factor,mu_f_factor=mu_f_factor,var_int=var_int,q0=q0_cen)
 		sigma_pp_cen,err_pp_cen = self.dsigma_tot_dpt(y,num_cen,iso=iso,n_f=n_f,is_pp=True,switch=switch,mu_factor=mu_factor,mu_f_factor=mu_f_factor)
 		Ucen = np.array((FCEL_cen[0]+FCEG_cen[0])/sigma_pp_cen)
-		pdf_val.append((FCEL_cen[0]+FCEG_cen[0])/sigma_pp_cen)
 		if 'q0' in var_err:
 			for q in q_list:
 				print('q0 = '+str(q))
@@ -2873,7 +2982,7 @@ class Sigma:
 			print('Computation on pdf set')
 			for j,pt in enumerate(P_T):
 				print('pt = '+str(pt)+'| '+str(j+1)+'/'+str(N_pt))
-				pt_pdf_val =[]
+				pt_pdf_val =[Ucen[j]]
 				x_T = 2*pt/rs
 				for i in range(1,p_set.size):
 					FCEL_pdf, FCEG_pdf = self.FCEL_G_integration_dydpt(y,x_T,i,mu_factor= mu_factor,mu_f_factor=mu_f_factor,iso=iso,n_f=n_f,switch =switch,eps = eps,var_int=var_int,q0=q0_cen)
@@ -2890,7 +2999,7 @@ class Sigma:
 			Uplus_q, Uminus_q = np.zeros_like(P_T),np.zeros_like(P_T)
 		Uplus = np.sqrt(Uplus_q**2+Uplus_mu**2+Uplus_pdf**2)
 		Uminus = np.sqrt(Uminus_q**2+Uminus_mu**2+Uminus_pdf**2)
-		return [Ucen,[Uplus,Uminus],[Uplus_q,Uminus_q,Uplus_mu,Uminus_mu,Uplus_pdf,Uminus_pdf]]
+		return [P_T,Ucen,[Uplus,Uminus],[Uplus_q,Uminus_q,Uplus_mu,Uminus_mu,Uplus_pdf,Uminus_pdf]]
 	
 	def R_pp_All_dy(self,x_T,num,q0,mu_factor=1,mu_f_factor=1,iso='p',n_f=3,switch ='dp_t',eps = 1e-15,var_int='nu'):
 		'''Return the ratios of the shifted sigma_l (l = 1,2,3,4 see proceedings arXiv:2512.02640) 
@@ -3098,6 +3207,14 @@ class Sigma:
 		pn = self.dsigma_tot_dy(x_T,num,mu_factor=mu_factor,mu_f_factor=mu_f_factor,iso='n',n_f=n_f,is_pp=True,switch =switch)[0]
 		return(A-Z)*pn/(A*pp)
 	
+	def C_n_p_dpt(self,y,num,mu_factor=1,mu_f_factor=1,n_f=3,switch ='dp_t'):
+		'''Some notation in the article, used in the computation of the RpA without the isospin effect'''
+		Z = self.Z
+		A = self.A
+		pp = self.dsigma_tot_dpt(y,num,mu_factor=mu_factor,mu_f_factor=mu_f_factor,n_f=n_f,is_pp=True,switch =switch)[0]
+		pn = self.dsigma_tot_dpt(y,num,mu_factor=mu_factor,mu_f_factor=mu_f_factor,iso='n',n_f=n_f,is_pp=True,switch =switch)[0]
+		return(A-Z)*pn/(A*pp)
+	
 	def RpA_wo_iso_dydpt(self,y,x_T,num,q0,mu_factor=1,mu_f_factor=1,n_f=3,switch ='dp_t',eps = 1e-15,var_int='nu'):
 		'''Return the true Rpa (with FCEL and FCEG effects) without isospin effects'''
 		Z = self.Z
@@ -3118,6 +3235,16 @@ class Sigma:
 		R_wo_iso = Rpp_cen/(1+C_n_p_cen)+Rpn_cen/(1+1/C_n_p_cen)
 		return R_wo_iso
 	
+	def RpA_wo_iso_dpt(self,y,num,q0,mu_factor=1,mu_f_factor=1,n_f=3,switch ='dp_t',eps = 1e-15,var_int='nu'):
+		'''Return the true Rpa (with FCEL and FCEG effects) without isospin effects'''
+		Z = self.Z
+		A = self.A
+		C_n_p_cen = self.C_n_p_dpt(y,num,n_f=n_f,switch =switch)
+		Rpp_cen = self.Rpp_FCELG_dpt(y,num,q0,mu_factor=mu_factor,mu_f_factor=mu_f_factor,n_f=n_f,switch =switch,eps = eps,var_int=var_int)
+		Rpn_cen = self.Rpp_FCELG_dpt(y,num,q0,mu_factor=mu_factor,mu_f_factor=mu_f_factor,iso='n',n_f=n_f,switch =switch,eps = eps,var_int=var_int)
+		R_wo_iso = Rpp_cen/(1+C_n_p_cen)+Rpn_cen/(1+1/C_n_p_cen)
+		return R_wo_iso
+	
 	def Uncertainties_RpA_wo_iso_dy(self,x_T,n_f=3,switch ='dp_t',eps = 1e-15,var_int='nu',q0_list=[0.07,0.05,0.09],var_err='q0,mu,pdf'):
 		'''Return the 4 ratios for the isospin study:
 		- RpA (or called Rpp^FCEL/G) = sigma_pp^FCEL/sigma_pp
@@ -3134,7 +3261,6 @@ class Sigma:
 		factor = [1./2.,2]
 		mu_factor_list = [(i,j) for i in factor for j in factor]
 		mu_val =[]
-		Uplus_q,Uminus_q,Uplus_mu,Uminus_mu= np.zeros_like(Y),np.zeros_like(Y), np.zeros_like(Y),np.zeros_like(Y)
 		#central value
 		print('central value')
 		num_cen = 0 
@@ -3174,8 +3300,75 @@ class Sigma:
 			Uplus_q, Uminus_q = np.zeros_like(Y),np.zeros_like(Y)
 		Uplus = np.sqrt(Uplus_q**2+Uplus_mu**2+Uplus_pdf**2)
 		Uminus = np.sqrt(Uminus_q**2+Uminus_mu**2+Uminus_pdf**2)
-		return [Ucen,[Uplus,Uminus],[Uplus_q,Uminus_q,Uplus_mu,Uminus_mu,Uplus_pdf,Uminus_pdf]]
+		return [Y,Ucen,[Uplus,Uminus],[Uplus_q,Uminus_q,Uplus_mu,Uminus_mu,Uplus_pdf,Uminus_pdf]]
 	
+	def Uncertainties_RpA_wo_iso_dpt(self,y,n_f=3,switch ='dp_t',eps = 1e-15,var_int='nu',q0_list=[0.07,0.05,0.09],var_err='q0,mu,pdf'):
+		'''Return the uncertinites on the final R_IpA (i.e taking in count FCEL
+		and FCEG effects), with:
+		- y the rapidity
+		- iso the isospin variable (='p' by default)
+		- n_f the number of flavours (=3 by default)
+		- switch the convention of p_T integration (= 'dp_t' by default)
+		- eps the minimun delta_y can value
+		- var_int (str) the integration variable (="nu" by default)
+		- q0_list the transport coefficient with its uncertaintites as [q0,q0-,q0+]
+		- var_err (str) containing the error on variable wanted like: "q0","mu","pdf" (can contains multiple ones like:"q0,pdf")
+		as:
+			[P_T,Ucen,[Uplus,Uminus],[Uplus_q,Uminus_q,Uplus_mu,Uminus_mu,Uplus_pdf,Uminus_pdf]]
+		so :
+		- for the 0 index the central value
+		- for the 1 index the + and - total uncertainties
+		- for the 2 index the + and - uncertainties for (in order) q0, mu, and pdfs'''
+		rs =self.rs
+		p_set = self.p_set
+		Uplus_pdf, Uminus_pdf = [],[]
+		P_T = self.P_T_list(y,self.Z)
+		q_list = [q0_list[1],q0_list[2]]
+		q_val= []
+		factor = [1./2.,2]
+		mu_factor_list = [(i,j) for i in factor for j in factor]
+		mu_val =[]
+		#central value
+		print('central value')
+		num_cen = 0 
+		q0_cen =q0_list[0]
+		Ucen = self.RpA_wo_iso_dpt(y,num_cen,q0_cen,n_f=n_f,switch =switch,eps = eps,var_int=var_int)
+		#uncertainties part
+		if 'q0' in var_err:
+			for q in q_list:
+				print('q0 = '+str(q))
+				U_q = self.RpA_wo_iso_dpt(y,num_cen,q,n_f=n_f,switch =switch,eps = eps,var_int=var_int)
+				q_val.append(U_q)
+			Uminus_q , Uplus_q = min_max(q_val)
+			Uminus_q, Uplus_q = Ucen - Uminus_q, Uplus_q - Ucen
+		if 'mu' in var_err:
+			for (a,b) in mu_factor_list:
+				print('(mu_factor,mu_f_factor) = '+str((a,b)))
+				U_mu = self.RpA_wo_iso_dpt(y,num_cen,q0_cen,mu_factor=a,mu_f_factor=b,n_f=n_f,switch =switch,eps = eps,var_int=var_int)
+				mu_val.append(U_mu)
+			Uminus_mu, Uplus_mu = min_max(mu_val)
+			Uminus_mu , Uplus_mu = Ucen-Uminus_mu, Uplus_mu-Ucen
+		if 'pdf' in var_err:
+			print('Computation on pdf set')
+			for j,pt in enumerate(P_T):
+				print('pt = '+str(pt)+'| '+str(j+1)+'/'+str(N_pt))
+				pt_pdf_val =[Ucen[j]]
+				x_T = 2*pt/rs
+				for i in range(1,p_set.size):
+					U_pdf = self.RpA_wo_iso_dydpt(y,x_T,i,q0_cen,n_f=n_f,switch =switch,eps = eps,var_int=var_int)
+					pt_pdf_val.append(U_pdf)
+				unc_pdf = p_set.uncertainty(pt_pdf_val)
+				Uplus_pdf.append(unc_pdf.errplus); Uminus_pdf.append(unc_pdf.errminus)
+			Uplus_pdf , Uminus_pdf = np.array(Uplus_pdf), np.array(Uminus_pdf)
+		if 'pdf' not in var_err:
+			Uplus_pdf, Uminus_pdf = np.zeros_like(P_T),np.zeros_like(P_T)
+		if 'mu' not in var_err:
+			Uplus_mu, Uminus_mu = np.zeros_like(P_T),np.zeros_like(P_T)
+		if 'q0' not in var_err:
+			Uplus_q, Uminus_q = np.zeros_like(P_T),np.zeros_like(P_T)
+		Uplus = np.sqrt(Uplus_q**2+Uplus_mu**2+Uplus_pdf**2)
+		Uminus = np.sqrt(Uminus_q**2+Uminus_mu**2+Uminus_pdf**2)
+		return [P_T,Ucen,[Uplus,Uminus],[Uplus_q,Uminus_q,Uplus_mu,Uminus_mu,Uplus_pdf,Uminus_pdf]]
 	# debug for xi fixed
 	
 	def FCEL_G_integration_dy_dxi(self,x_T,xi,mu2,mu_f2,num,n_f=3,switch ='dp_t'):
@@ -3280,11 +3473,12 @@ class Sigma:
 		R += (FCEL + FCEG)/L_tot
 		return R 
 	
-	def P_T_list(self,y,p_t_min = 3,p_t_max= 15):
+	def P_T_list(self,y,Z = 82):
 		'''The numpy linspace of transverse momentum in GeV, with:
 		- y the rapidity
 		- p_t_min the minimum wanted if the phase space is too large
 		- p_t_max same for the maximum wanted'''
+		p_t_min,p_t_max = Z_to_p_Tlim[Z]
 		rs = self.rs
 		p_max = min(p_t_max,min(rs*np.exp(y),rs*np.exp(-y)))
 		P_T = np.linspace(p_t_min,p_max,N_pt)
