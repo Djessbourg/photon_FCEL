@@ -4,7 +4,7 @@
 # File for computing R_pA tot 
 # as a function of R_pA dir 
 # and R_pA frag.
-# Last modified: 12/11/2025
+# Last modified: 24/02/2026
 # =============================================================================
 import sys
 import os
@@ -12,6 +12,8 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 plots_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'plots'))
 examples_dir =  os.path.abspath(os.path.dirname(__file__))						# current directory
 data_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), 'RpA_tot_dir_onef')) # the direcory to save data from this file
+RpA_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), 'RpA_dir')) # the direcory to save data from this file
+
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -29,19 +31,38 @@ min_max = sig.min_max 															# to compute the min and max of a set of da
 
 # Context data
 
-rs = 8800
+# rs = 8800
+rs = 200
 s = float((rs)**2) # CM energy in Gev^2
-p_T_dispo = [3,5,10,15]
-z = 0.6
-Xi = 0.5
+# p_T_dispo = [3,5,10,15]
+p_T_dispo = [2,4,6]
 
-A = 208
-Z = 82
+Atom = sig.Atom
+
+# atom = 'Pb'
+atom = 'Au'
+
+Z = Atom[atom]['Z']
+A = Atom[atom]['A']
+
+if atom == 'Pb':
+	y_lim = (-4,4)
+	p_T_lim = (3,15)
+elif atom == 'Au':
+	y_lim = (-3,3)
+	p_T_lim = (2,6)
+
 B = 1
 alpha_s = 0.5
 m_photon = 0
 m_pion = 0.134
 m = m_photon
+
+p_num_plot_list = ['14a','14b','1','3','15']
+p_num_color_list = ['blue','orange','green','red','purple']
+z = [0.6,0.4,0.8]																# with the norm u = [u_0,u_-,u_+]
+q = [0.07,0.05,0.09]
+xi = [0.5,0.25,0.75]
 
 # plot variables
 alph = 0.3
@@ -64,10 +85,10 @@ ylims = {
 # So to chose a fixed rapidity to plot R_pA pt dependant, pick it here.
 # =============================================================================
 
-fixed_y = [-3.9,0,3.9] #+/-3.9 would be rounded to +/-4
+fixed_y = [0]
 
 ### Initialisation of a sigma object ###
-proton = "NNPDF40_lo_as_01180"
+proton = "NNPDF40_nlo_as_01180"
 Pb = "nNNPDF30_nlo_as_0118_A208_Z82"
 
 pPb_cross_section = sig.Sigma(proton,Pb,s,Z,A)
@@ -134,20 +155,22 @@ f_dirs={}
 Processes = {}
 
 for pt in p_T_dispo:
-	pawres_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), 'copy_pawres_'+str(pt))) # put here your jetphox data
+	pawres_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), 'copy_pawres_rs'+str(rs)+'_p_t'+str(pt))) # put here your jetphox data
 	file = uproot.open(os.path.join(pawres_dir,"LO_frag_ratios.root"))
 	# retrieve all fragmentaion histograms
 	histo = {k: file[k] for k in file.keys() if file[k].classname.startswith("TH1")} #labels are the same as the process dict but with a ';1' in addition
 	f_alpha_cs = {}
 	f_alpha_smooth = {}
-	# Create a dictionary of cubic sline fits of the f_alpha
+	# Create a dictionary of cubic spline fits of the f_alpha
 	for k in histo.keys():
 		values = histo[k].values()
 		edges = histo[k].axes[0].edges()
 		centers = (edges[:-1] + edges[1:]) / 2.
 		cs = CubicSpline(centers, values)
 		smooth = make_smoothing_spline(centers, values)
-		lil_Y = np.linspace(-6, 6,31)
+		max_y = sig.Z_to_ylim[Z]
+		min_y = -1*max_y
+		lil_Y = np.linspace(min_y, max_y,31)
 		smooth2 = make_smoothing_spline(lil_Y, smooth(lil_Y))
 		f_alpha_cs[prefix(k)]=cs 													# cs gives an array for a float or an array of float given
 		f_alpha_smooth[prefix(k)]=smooth2 											# smooth also, but smoother
@@ -176,7 +199,9 @@ for pt in p_T_dispo:
 		rapidity = (edges[:-1] + edges[1:]) / 2.
 		# 	cs = CubicSpline(rapidity,Values)
 		smooth = make_smoothing_spline(rapidity,Values)
-		lil_Y = np.linspace(-6, 6,31)
+		max_y = sig.Z_to_ylim[Z]
+		min_y = -1*max_y
+		lil_Y = np.linspace(min_y, max_y,31)
 		smooth2 = make_smoothing_spline(lil_Y, smooth(lil_Y))
 		Processus[p_num] = smooth2
 	Processes[pt]=Processus
@@ -187,7 +212,7 @@ def f_alpha_pt(pt):
 	return f_alphas[pt]
 
 def f_dir_pt(pt):
-	return f_dir[pt]
+	return f_dirs[pt]
 
 def Processus_pt(pt):
 	return Processes[pt]
@@ -276,12 +301,6 @@ def all_alpha_colors_xi(Y,pt,p_num,xi,z,q):
 	Result['tot'] = R_tot
 	return Result
 
-p_num_plot_list = ['14a','14b','1','3','15']
-p_num_color_list = ['blue','orange','green','red','purple']
-z = [0.6,0.4,0.8]																# with the norm u = [u_0,u_-,u_+]
-q = [0.07,0.05,0.09]
-xi = [0.5,0.25,0.75]
-
 def R_frag_alpha(Y,pt,p_num,z,q,xi):
 	'''Return the RpA for a given process p_num'''
 	R = all_alpha_colors_xi(Y,pt,p_num,xi, z,q)
@@ -322,58 +341,98 @@ def R_frag_uncertainties(Y,pt,z,q,xi):
 
 # here do the tot RpA with dir photons
 
-def RpA_dir_uncertainties(pt,q):
-	'''Return the R_pA for direct photons from the sigma.py file, with a variable q'''
+def RpA_dir_uncertainties(pt):
 	x_T = 2*pt/rs
-	R_cen = pPb_cross_section.Rpp_FCELG_dy(x_T, 0, q[0])
-	R_q = [R_cen, pPb_cross_section.Rpp_FCELG_dy(x_T, 0, q[1]),pPb_cross_section.Rpp_FCELG_dy(x_T, 0, q[2])]
-	U_q = min_max(R_q)
-	return [R_cen, abs(R_cen-U_q[0]),abs(U_q[1]-R_cen)]
+	'''Return the R_pA for direct photons from the sigma.py file'''
+	f_name = proton+'_RpA_'+str(rs)+'GeV_Z'+str(Z)+'_A'+str(A)+'_'+str(pt)+'GeV.txt'
+	if os.path.exists(os.path.join(RpA_dir,f_name)):
+		print(f"The file '{f_name}' already exists. It is loaded.")
+		Y,Rpa,Rpa_plus,Rpa_minus,Rpa_plus_q,Rpa_minus_q,Rpa_plus_mu,Rpa_minus_mu,Rpa_plus_pdf,Rpa_minus_pdf = np.loadtxt(os.path.join(RpA_dir,f_name))
+	else:
+		print("The file does not exists")
+		Y,Rpa ,err_Rpa, err_var_Rpa = pPb_cross_section.Uncertainties_RpA_dy(x_T)
+		Rpa_plus,Rpa_minus = err_Rpa[0],err_Rpa[1]
+		Rpa_plus_q,Rpa_minus_q,Rpa_plus_mu,Rpa_minus_mu,Rpa_plus_pdf,Rpa_minus_pdf= err_var_Rpa[0],err_var_Rpa[1],err_var_Rpa[2],err_var_Rpa[3],err_var_Rpa[4],err_var_Rpa[5]
+		r = [Y,Rpa,Rpa_plus,Rpa_minus,Rpa_plus_q,Rpa_minus_q,Rpa_plus_mu,Rpa_minus_mu,Rpa_plus_pdf,Rpa_minus_pdf]
+		np.savetxt(os.path.join(RpA_dir,f_name), r)
+		print(f" '{f_name}' has been created")
+	R_dict = {
+		'Y':Y,
+		'R':{
+			'cen':Rpa,
+			'err':[Rpa,Rpa_minus, Rpa_plus],
+			'mu':[Rpa,Rpa_minus_mu,Rpa_plus_mu],
+			'q':[Rpa,Rpa_minus_q,Rpa_plus_q],
+			'pdf':[Rpa,Rpa_minus_pdf,Rpa_plus_pdf]
+		}
+	}
+	return R_dict
 
-def RpA_tot(Y,pt,z,q,xi):
+def RpA_tot(pt,z_i=0,q_i=0,xi_i=0):
 	'''Return the total R_pA = f_dir*R_pA_dir + (1-f_dir)*R_pA_frag with given:
 	- Y a list of rapidities (corresponding to the range of frag fits)
 	- pt the trnsverse momentum (available in p_T_dispo)
 	- z the fragmentation momentum ratio
 	- q the transport coefficient
 	- xi the parton fraction p+_3/p+_1 = -\hat{u}/\hat{s}'''
-	x_T = 2*pt/rs
-	Rpa_frag = R_frag(Y,pt, z, q, xi)
-	Rpa_dir = pPb_cross_section.Rpp_FCELG_dy(x_T, 0, q)
+	R_dict = RpA_dir_uncertainties(pt)
+	Y = R_dict['Y']
+	Rpa_frag = R_frag(Y,pt, z[z_i], q[q_i], xi[xi_i])
+	Rpa_dir = R_dict['R']['cen']
+	if q_i == 0:
+		Rpa_dir_q = Rpa_dir
+	elif q_i == 1:
+		Rpa_dir_q = Rpa_dir - R_dict['R']['q'][q_i]
+	elif q_i == 2:
+		Rpa_dir_q = Rpa_dir + R_dict['R']['q'][q_i]
 	f = f_dir_pt(pt)(Y)
-	return f*Rpa_dir+(1-f)*Rpa_frag
+	R_tot = f*Rpa_dir_q+(1-f)*Rpa_frag
+	return R_tot
 
-def RpA_tot_uncertainties(Y,pt,z,q,xi):
+def RpA_tot_uncertainties(pt,z,q,xi):
 	'''Return the total R_pA = f_dir*R_pA_dir + (1-f_dir)*R_pA_frag and its uncertainties with given:
 	- pt the trnsverse momentum (available in p_T_dispo)
-	- z the fragmentation momentum ratio
-	- q the transport coefficient
-	- xi the parton fraction p+_3/p+_1 = -\hat{u}/\hat{s}
+	- z the fragmentation momentum ratio (list)
+	- q the transport coefficient (list)
+	- xi the parton fraction p+_3/p+_1 = -\hat{u}/\hat{s} (list)
 	In the result list you will find:
 	- i = 0 : Y (because the file is saved so if you want to use it elsewhere, you can)
 	- i = 1,2,3: R_tot, R_tot_minus, R_tot_plus
 	- i = 4,5,6: R_dir, R_dir_minus, R_dir_plus
 	- i = 7,8,9: R_frag, R_frag_min, R_frag_max'''
-	Ny = len(Y)
-	file_name = 'RpA_tot_dir_onef_Ny'+str(Ny)+'_pt'+str(pt)+'_rs'+str(rs)+'_A'+str(A)+'_Z'+str(Z)+'.txt'
+	file_name = 'RpA_tot_dir_onef_pt'+str(pt)+'_rs'+str(rs)+'_A'+str(A)+'_Z'+str(Z)+'.txt'
 	if os.path.exists(os.path.join(data_dir,file_name)):
 		print(f"The file '{file_name}' already exists. It is loaded.")
 		r = np.loadtxt(os.path.join(data_dir,file_name))
 	else:
 		print("The file does not exists")
+		R_dict = RpA_dir_uncertainties(pt)
+		#R_dir
+		Y = R_dict['Y']
+		R_dir , U_dir_minus, U_dir_plus= R_dict['R']['err']
+		R_dir_minus, R_dir_plus = R_dir-U_dir_minus, R_dir+U_dir_plus
+		R_mu = R_dict['R']['mu']
+		U_mu_min , U_mu_max = R_mu[1], R_mu[2]
+		R_pdf = R_dict['R']['pdf']
+		U_pdf_min , U_pdf_max = R_pdf[1], R_pdf[2]
+		#R_frag
 		R_frag_unc = R_frag_uncertainties(Y,pt, z, q, xi)
 		R_frag = R_frag_unc[0]
 		D_all_min, D_all_max = R_frag_unc[1],R_frag_unc[2]
-		R_dir_unc = RpA_dir_uncertainties(pt,q)
-		R_dir = R_dir_unc[0]
+		R_frag_minus, R_frag_plus = R_frag_unc[3], R_frag_unc[4]
+		#R_tot
 		f = f_dir_pt(pt)(Y)
 		R_cen = f*R_dir + (1-f)*R_frag
-		R_q = [R_cen, RpA_tot(Y,pt, z[0], q[1], xi[0]), RpA_tot(Y,pt, z[0], q[2], xi[0])]
+		R_tot_q_minus, R_tot_q_plus = RpA_tot(pt,q_i=1), RpA_tot(pt,q_i=2)
+		R_q = [R_cen,R_tot_q_minus, R_tot_q_plus]
 		U_q = min_max(R_q)
-		U_q_min , U_q_max = R_cen - U_q[0], U_q[1]-R_cen
-		U_min = np.sqrt(U_q_min**2+((1-f)**2)*D_all_min**2)
-		U_max = np.sqrt(U_q_max**2+((1-f)**2)*D_all_max**2)
-		r = np.array([Y,R_cen, R_cen - U_min ,R_cen + U_max,R_dir,R_dir-R_dir_unc[1],R_dir+R_dir_unc[2],R_frag,R_frag-R_frag_unc[3],R_frag+R_frag_unc[4]])
+		U_q_min , U_q_max = R_cen-U_q[0], U_q[1]-R_cen
+		#Uncertainties computing 
+		U_dir_min, U_dir_max = np.sqrt(U_mu_min**2+U_pdf_min**2),np.sqrt(U_mu_max**2+U_pdf_max**2)
+		U_min = np.sqrt(U_q_min**2+((1-f)**2)*D_all_min**2+(f**2)*U_dir_min**2)
+		U_max = np.sqrt(U_q_max**2+((1-f)**2)*D_all_max**2+(f**2)*U_dir_max**2)
+		R_minus,R_plus =  R_cen-U_min ,R_cen + U_max
+		r = np.array([Y,R_cen,R_minus,R_plus,R_dir,R_dir_minus,R_dir_plus,R_frag,R_frag-R_frag_minus,R_frag+R_frag_plus])
 		np.savetxt(os.path.join(data_dir,file_name), r)
 		print(f" '{file_name}' has been created")
 	return r
@@ -467,63 +526,73 @@ def plot_f_alpha(Y,pt,L,C,n=2):
 	plt.savefig(os.path.join(plots_dir,n_fig),bbox_inches="tight")# bbox_inches="tight"
 	plt.show()
 
-def pt_plots(Y,y_list,z,q,xi):
+def pt_plots(y_list,z,q,xi):
 	'''Y a vector of rapidities and y_list some rapidities inside it'''
 	a=0
 	b=0
-	Yr = np.round(Y,1)															# adapt the round parameters folowing your Y vector and your y_list
 	for y in y_list:
-		if not(y in Yr):
-			raise ValueError(str(y)+' is not in the Y argument you gave')
-		else:
-			i = np.where(Yr == y)
-			R_tot , R_tot_minus, R_tot_plus = [],[],[]
-			R_dir , R_dir_minus, R_dir_plus = [],[],[]
-			R_frag, R_frag_minus, R_frag_plus = [],[],[]
-			for pt in p_T_dispo:													# Supposing that the coputation is already done, otherwise there will be a lot of calculation
-				r = RpA_tot_uncertainties(Y,pt ,z, q, xi)
+		R_tot , R_tot_minus, R_tot_plus = [],[],[]
+		R_dir , R_dir_minus, R_dir_plus = [],[],[]
+		R_frag, R_frag_minus, R_frag_plus = [],[],[]
+		for pt in p_T_dispo:													# Supposing that the coputation is already done, otherwise there will be a lot of calculation
+			r = RpA_tot_uncertainties(pt ,z, q, xi)
+			Y = r[0]
+			Yr = np.round(Y,1)
+			if not(y in Yr):
+				raise ValueError(str(y)+' is not in the Y argument you gave')
+			else:
+				i = np.where(Yr == y)
 				r_tot , r_tot_minus, r_tot_plus = r[1:4]
 				r_dir , r_dir_minus, r_dir_plus = r[4:7]
 				r_frag, r_frag_minus, r_frag_plus = r[7:]
 				R_tot.append(r_tot[i][0]);R_tot_minus.append(r_tot_minus[i][0]);R_tot_plus.append(r_tot_plus[i][0])
 				R_dir.append(r_dir[i][0]);R_dir_minus.append(r_dir_minus[i][0]);R_dir_plus.append(r_dir_plus[i][0])
 				R_frag.append(r_frag[i][0]);R_frag_minus.append(r_frag_minus[i][0]);R_frag_plus.append(r_frag_plus[i][0])
-			fig, ax = plt.subplots(constrained_layout=True)
-			ax.xaxis.set_minor_locator(MultipleLocator(1))
-			ax.xaxis.set_major_locator(MultipleLocator(5))
-			plt.axhline(y=1, color='grey', alpha=alph)
-			plt.plot(p_T_dispo,R_dir,color = dir_color, label = r'$R_{pA}^{dir}$')
-			plt.plot(p_T_dispo,R_frag,color = frag_color,label = r'$R_{pA}^{frag}$')
-			plt.plot(p_T_dispo,R_tot,color = tot_color,label = r'$R_{pA}^{tot}$')
-			plt.fill_between(p_T_dispo, R_tot_minus, R_tot_plus, color=tot_color, alpha=alph)
-			plt.fill_between(p_T_dispo, R_dir_minus, R_dir_plus, color=dir_color, alpha=alph)
-			plt.fill_between(p_T_dispo, R_frag_minus, R_frag_plus, color=frag_color, alpha=alph)
-			plt.ylim(0.8,1.1)
-			plot_usuals(s1=f_size-b,s2=f_size-a,n=2,loca='lower left')
-			plt.xlabel(r'$p_\bot$ (GeV)',fontsize=f_size-a)
-			plt.ylabel(r'$R_{pA}$',fontsize=f_size-a)
-			plt.text(0.75, 0.9,r'$y =$ '+str(int(np.round(y))),horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b)
-			plt.text(0.75, 0.8,r'$\sqrt{s} =$ '+str(rs/1000)+' TeV',horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b)
-			n_fig = 'tot_dir_frag_Npt'+str(len(p_T_dispo))+'_y'+str(y)+'_rs'+str(rs)+'_A'+str(A)+'_Z'+str(Z)+'.pdf'
-			ax.set_aspect(1.0/ax.get_data_ratio(), adjustable='box')
-			plt.savefig(os.path.join(plots_dir,n_fig),bbox_inches="tight")# bbox_inches="tight"
-			plt.show()
-			fig, ax = plt.subplots(constrained_layout=True)
-			ax.xaxis.set_minor_locator(MultipleLocator(1))
-			ax.xaxis.set_major_locator(MultipleLocator(5))
-			plt.axhline(y=1, color='grey', alpha=alph)
-			plt.plot(p_T_dispo,R_dir,color = dir_color, label = r'$R_{pA}^{dir}$')
-			plt.plot(p_T_dispo,R_tot,color = tot_color,label = r'$R_{pA}^{tot}$')
-			plt.fill_between(p_T_dispo, R_tot_minus, R_tot_plus, color=tot_color, alpha=alph)
-			plt.ylim(0.8,1.1)
-			plot_usuals(s1=f_size-b,s2=f_size-a,loca='lower left')
-			plt.xlabel(r'$p_\bot$ (GeV)',fontsize=f_size-a)
-			plt.ylabel(r'$R_{pA}$',fontsize=f_size-a)
-			plt.text(0.8, 0.85,r'$y =$'+str(int(np.round(y))),horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b)
-			n_fig = 'tot_dir_Npt'+str(len(p_T_dispo))+'_y'+str(y)+'_rs'+str(rs)+'_A'+str(A)+'_Z'+str(Z)+'.pdf'
-			ax.set_aspect(1.0/ax.get_data_ratio(), adjustable='box')
-			plt.savefig(os.path.join(plots_dir,n_fig),bbox_inches="tight")# bbox_inches="tight"
-			plt.show()
+		fig, ax = plt.subplots(constrained_layout=True)
+		ax.xaxis.set_minor_locator(MultipleLocator(1))
+		ax.xaxis.set_major_locator(MultipleLocator(1))
+		# ax.xaxis.set_major_locator(MultipleLocator(5))
+		plt.axhline(y=1, color='grey', alpha=alph)
+		plt.plot(p_T_dispo,R_dir,color = dir_color, label = r'$R_{\text{pA}}^{\text{dir}}$')
+		plt.plot(p_T_dispo,R_frag,color = frag_color,label = r'$R_{\text{pA}}^{\text{frag}}$')
+		plt.plot(p_T_dispo,R_tot,color = tot_color,label = r'$R_{\text{pA}}^{\text{tot}}$')
+		plt.fill_between(p_T_dispo, R_tot_minus, R_tot_plus, color=tot_color, alpha=alph)
+		plt.fill_between(p_T_dispo, R_dir_minus, R_dir_plus, color=dir_color, alpha=alph)
+		plt.fill_between(p_T_dispo, R_frag_minus, R_frag_plus, color=frag_color, alpha=alph)
+		plt.ylim(0.8,1.1)
+		# plt.xlim(p_T_lim)
+		plot_usuals(s1=f_size-b,s2=f_size-a,n=2,loca='lower left')
+		plt.xlabel(r'$p_\bot$ (GeV)',fontsize=f_size-a)
+		plt.ylabel(r'$R_{\text{pA}}$',fontsize=f_size-a)
+		plt.text(0.75, 0.9,r'$y =$ '+str(int(np.round(y))),horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b)
+		plt.text(0.1, 0.9, r'p'+atom, horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize=f_size-a)
+		plt.text(0.75, 0.8,r'$\sqrt{s} =$ '+str(rs)+' GeV',horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b)
+		# plt.text(0.75, 0.8,r'$\sqrt{s} =$ '+str(rs/1000)+' TeV',horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b)
+		n_fig = proton+'tot_dir_frag_Npt'+str(len(p_T_dispo))+'_y'+str(y)+'_rs'+str(rs)+'_A'+str(A)+'_Z'+str(Z)+'.pdf'
+		ax.set_aspect(1.0/ax.get_data_ratio(), adjustable='box')
+		plt.savefig(os.path.join(plots_dir,n_fig),bbox_inches="tight")# bbox_inches="tight"
+		plt.show()
+		fig, ax = plt.subplots(constrained_layout=True)
+		ax.xaxis.set_minor_locator(MultipleLocator(1))
+		ax.xaxis.set_major_locator(MultipleLocator(1))
+		# ax.xaxis.set_major_locator(MultipleLocator(5))
+		plt.axhline(y=1, color='grey', alpha=alph)
+		plt.plot(p_T_dispo,R_dir,color = dir_color, label = r'$R_{\text{pA}}^{\text{dir}}$')
+		plt.plot(p_T_dispo,R_tot,color = tot_color,label = r'$R_{\text{pA}}^{\text{tot}}$')
+		plt.fill_between(p_T_dispo, R_tot_minus, R_tot_plus, color=tot_color, alpha=alph)
+		plt.ylim(0.8,1.1)
+		# plt.xlim(p_T_lim)
+		plot_usuals(s1=f_size-b,s2=f_size-a,loca='lower left')
+		plt.xlabel(r'$p_\bot$ (GeV)',fontsize=f_size-a)
+		plt.ylabel(r'$R_{\text{pA}}$',fontsize=f_size-a)
+		plt.text(0.75, 0.9,r'$y =$ '+str(int(np.round(y))),horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b)
+		plt.text(0.1, 0.9, r'p'+atom, horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize=f_size-a)
+		plt.text(0.75, 0.8,r'$\sqrt{s} =$ '+str(rs)+' GeV',horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b)
+		# plt.text(0.75, 0.8,r'$\sqrt{s} =$ '+str(rs/1000)+' TeV',horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b)
+		n_fig = proton+'tot_dir_Npt'+str(len(p_T_dispo))+'_y'+str(y)+'_rs'+str(rs)+'_A'+str(A)+'_Z'+str(Z)+'.pdf'
+		ax.set_aspect(1.0/ax.get_data_ratio(), adjustable='box')
+		plt.savefig(os.path.join(plots_dir,n_fig),bbox_inches="tight")# bbox_inches="tight"
+		plt.show()
 
 def plot_mains(Y,pt,z,q,xi):
 	Ny = len(Y)
@@ -560,11 +629,11 @@ def plot_mains(Y,pt,z,q,xi):
 		plt.savefig(os.path.join(plots_dir,n_fig),bbox_inches="tight")
 		plt.show()
  
-def all_plots(Y,pt,z,q,xi):
+def all_plots(pt,z,q,xi):
 	a=0
 	b=0
-	Ny = len(Y)
-	r = RpA_tot_uncertainties(Y,pt, z, q, xi)
+	r = RpA_tot_uncertainties(pt, z, q, xi)
+	Y = r[0]
 	r_tot , r_tot_minus, r_tot_plus = r[1:4]
 	r_dir , r_dir_minus, r_dir_plus = r[4:7]
 	r_frag, r_frag_minus, r_frag_plus = r[7:]
@@ -572,37 +641,43 @@ def all_plots(Y,pt,z,q,xi):
 	fig, ax = plt.subplots(constrained_layout=True)
 	ax.xaxis.set_minor_locator(MultipleLocator(1))
 	plt.axhline(y=1, color='grey', alpha=alph)
-	plt.plot(Y,r_dir,color = dir_color, label = r'$R_{pA}^{dir}$')
-	plt.plot(Y,r_frag,color = frag_color,label = r'$R_{pA}^{frag}$')
-	plt.plot(Y,r_tot,color = tot_color,label = r'$R_{pA}^{tot}$')
+	plt.plot(Y,r_dir,color = dir_color, label = r'$R_{\text{pA}}^{\text{dir}}$')
+	plt.plot(Y,r_frag,color = frag_color,label = r'$R_{\text{pA}}^{\text{frag}}$')
+	plt.plot(Y,r_tot,color = tot_color,label = r'$R_{\text{pA}}^{\text{tot}}$')
 	plt.fill_between(Y, r_tot_minus, r_tot_plus, color=tot_color, alpha=alph)
 	plt.fill_between(Y, r_dir_minus, r_dir_plus, color=dir_color, alpha=alph)
 	plt.fill_between(Y, r_frag_minus, r_frag_plus, color=frag_color, alpha=alph)
-	plot_usuals(n=2,s1=f_size-b,s2=f_size-a,loca = 'lower left')
+	plot_usuals(n=2,s1=f_size-b,s2=f_size-a,loca = 'lower right')
 	plt.ylim(0.8,1.1)
+	plt.xlim(y_lim)
 	plt.xlabel('y',fontsize=f_size-a)
-	plt.ylabel(r'$R_{pA}$', fontsize=f_size-a)
+	plt.ylabel(r'$R_{\text{pA}}$', fontsize=f_size-a)
+	plt.text(0.1, 0.9, r'p'+atom, horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize=f_size-a)
 	plt.text(0.75, 0.9,r'$p_\bot =$ '+str(pt)+' GeV',horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b) #bbox=dict(boxstyle="round,pad=0.3", facecolor='gray', alpha=alph)
-	plt.text(0.75, 0.8,r'$\sqrt{s} =$ '+str(rs/1000)+' TeV',horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b)
+	plt.text(0.75, 0.8,r'$\sqrt{s} =$ '+str(rs)+' GeV',horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b)
+	# plt.text(0.75, 0.8,r'$\sqrt{s} =$ '+str(rs/1000)+' TeV',horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b)
 	ax.set_aspect(1.0/ax.get_data_ratio(), adjustable='box')
-	n_fig = 'tot_dir_frag_Ny'+str(Ny)+'_pt'+str(pt)+'_rs'+str(rs)+'_A'+str(A)+'_Z'+str(Z)+'.pdf'
+	n_fig = proton+'tot_dir_frag_pt'+str(pt)+'_rs'+str(rs)+'_A'+str(A)+'_Z'+str(Z)+'.pdf'
 	plt.savefig(os.path.join(plots_dir,n_fig),bbox_inches="tight")
 	plt.show()
 	# RpA_tot unc only + dir in dash
 	fig, ax = plt.subplots(constrained_layout=True)
 	ax.xaxis.set_minor_locator(MultipleLocator(1))
 	plt.axhline(y=1, color='grey', alpha=alph)
-	plt.plot(Y,r_dir,color= dir_color,linestyle='--',label= r'$R_{pA}^{dir}$')
-	plt.plot(Y,r_tot,color = tot_color,label = r'$R_{pA}^{tot}$')
+	plt.plot(Y,r_dir,color= dir_color,linestyle='--',label= r'$R_{\text{pA}}^{\text{dir}}$')
+	plt.plot(Y,r_tot,color = tot_color,label = r'$R_{\text{pA}}^{\text{tot}}$')
 	plt.fill_between(Y, r_tot_minus, r_tot_plus,color=tot_color,alpha=alph)
 	plot_usuals(s1=f_size-b,s2=f_size-a,loca = 'lower left')
 	plt.ylim(0.8,1.1)
+	plt.xlim(y_lim)
 	plt.xlabel('y',fontsize=f_size-a)
-	plt.ylabel(r'$R_{pA}$',fontsize=f_size-a)
+	plt.ylabel(r'$R_{\text{pA}}$',fontsize=f_size-a)
+	plt.text(0.1, 0.9, r'p'+atom, horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize=f_size-a)
 	plt.text(0.75, 0.9,r'$p_\bot =$ '+str(pt)+' GeV',horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b) #bbox=dict(boxstyle="round,pad=0.3", facecolor='gray', alpha=alph)
-	plt.text(0.75, 0.8,r'$\sqrt{s} =$ '+str(rs/1000)+' TeV',horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b)
+	plt.text(0.75, 0.8,r'$\sqrt{s} =$ '+str(rs)+' GeV',horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b)
+	# plt.text(0.75, 0.8,r'$\sqrt{s} =$ '+str(rs/1000)+' TeV',horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b)
 	ax.set_aspect(1.0/ax.get_data_ratio(), adjustable='box')
-	n_fig = 'tot_vs_dir_Ny'+str(Ny)+'_pt'+str(pt)+'_rs'+str(rs)+'_A'+str(A)+'_Z'+str(Z)+'.pdf'
+	n_fig = proton+'tot_vs_dir_pt'+str(pt)+'_rs'+str(rs)+'_A'+str(A)+'_Z'+str(Z)+'.pdf'
 	plt.savefig(os.path.join(plots_dir,n_fig),bbox_inches="tight")
 	plt.show()
 # 	# the frag Rpa with the main components
@@ -644,15 +719,11 @@ def all_plots(Y,pt,z,q,xi):
 # 		plt.savefig(os.path.join(plots_dir,n_fig),bbox_inches="tight")
 # 		plt.show()
 
-pt = p_T_dispo[1]
-x_T = 2*pt/rs
-Y_list = sig.Y_list(x_T)
-# pt_plots(Y_list, fixed_y, z, q, xi)
-for p_t in p_T_dispo:
-	x_T = 2*p_t/rs
-	Y_list = sig.Y_list(x_T)
-# 	plot_splines(np.linspace(-6,6,100), p_t, p_num_plot_list,p_num_color_list,n=1)
-# 	plot_f_alpha(np.linspace(-6,6,100), p_t, p_num_plot_list,p_num_color_list,n=2)
-	all_plots(Y_list,p_t, z, q, xi)
+
+pt_plots(fixed_y, z, q, xi)
+# for p_t in p_T_dispo:
+	# plot_splines(np.linspace(-6,6,100), p_t, p_num_plot_list,p_num_color_list,n=1)
+	# plot_f_alpha(np.linspace(-6,6,100), p_t, p_num_plot_list,p_num_color_list,n=2)
+	# all_plots(p_t, z, q, xi)
 # plot_mains(np.linspace(-6, 6,100),z, q, xi, n)
-# plot_sigma_spline(np.linspace(-6, 6,100))
+# plot_sigma_spline(np.linspace(-6, 6,100),pt)

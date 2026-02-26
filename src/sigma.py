@@ -52,12 +52,12 @@ particle = {
 
 Atom ={ # Add little by little the nuclei needed
 	'Pb': {'Z':82 ,'A':208,'ylim':6} ,
-	'Au': {'Z':79,'A':197,'ylim':4.5}
+	'Au': {'Z':79,'A':197,'ylim':3}
 }
 
 Z_to_ylim = {
 	82:6,
-	79:4.5
+	79:3
 }
 
 Z_to_p_Tlim ={
@@ -243,6 +243,9 @@ class Sigma:
 		self.current_A = self.A_list[0] 
 		self.current_p_num = 0
 		self.current_A_num = 0
+		self.p_t = lambda x_T:x_T*self.rs/2.
+		self.M_t = lambda x_T,M: np.sqrt(M**2+self.p_t(x_T)**2)
+		self.b = lambda x_T,M: (M/self.p_t(x_T))**2
 		self.tot_dy_parameters = []												# Those next ones are juste for saving time in computation,
 		self.Gq_dy_parameters = []												# for not redoing the same calculations 2 times in a row
 		self.qG_dy_parameters = []
@@ -263,6 +266,26 @@ class Sigma:
 		self.sigma_qG_dpt = ([],[])
 		self.sigma_qqbar_dpt = ([],[])
 		self.sigma_qbarq_dpt = ([],[])
+		self.tot_dy_M_parameters = []												# Those next ones are juste for saving time in computation,
+		self.Gq_dy_M_parameters = []												# for not redoing the same calculations 2 times in a row
+		self.qG_dy_M_parameters = []
+		self.qqbar_dy_M_parameters = []
+		self.qbarq_dy_M_parameters = []
+		self.sigma_tot_dy_M = ([],[])
+		self.sigma_Gq_dy_M = ([],[])
+		self.sigma_qG_dy_M = ([],[])
+		self.sigma_qqbar_dy_M = ([],[])
+		self.sigma_qbarq_dy_M = ([],[])
+		self.tot_dpt_parameters_M = []
+		self.Gq_dpt_parameters_M = []
+		self.qG_dpt_parameters_M = []
+		self.qqbar_dpt_parameters_M = []
+		self.qbarq_dpt_parameters_M = []
+		self.sigma_tot_dpt_M = ([],[])
+		self.sigma_Gq_dpt_M = ([],[])
+		self.sigma_qG_dpt_M = ([],[])
+		self.sigma_qqbar_dpt_M = ([],[])
+		self.sigma_qbarq_dpt_M = ([],[])
 		self.tot_dy_xi_parameters = []
 		self.Gq_dy_xi_parameters = []
 		self.qG_dy_xi_parameters = []
@@ -793,16 +816,6 @@ class Sigma:
 		I_qbarq = self.qbarq_M(y,x_T,Xi,M,num,mu_factor,mu_f_factor,iso,n_f,is_pp,switch)
 		return (I_Gq + I_qG + I_qqbar + I_qbarq)
 	
-	# def FCEL_integrand(self,y,x_T,Xi,num,mu_factor=1,mu_f_factor=1,iso = 'p',n_f = 3, is_pp = False,switch = 'dp_t'):
-	# 	I_Gq = self.Gq(y,x_T,Xi,num,mu_factor,mu_f_factor,iso,n_f,is_pp,switch)
-	# 	I_qqbar = self.qqbar(y,x_T,Xi,num,mu_factor,mu_f_factor,iso,n_f,is_pp,switch)
-	# 	I_qbarq = self.qbarq(y,x_T,Xi,num,mu_factor,mu_f_factor,iso,n_f,is_pp,switch)
-	# 	return (I_Gq+I_qqbar+I_qbarq)
-	
-	# def FCEG_integrand(self,y,x_T,Xi,num,mu_factor=1,mu_f_factor=1,n_f = 3, is_pp = False,switch = 'dp_t'):
-	# 	I_qG = self.qG(y,x_T,Xi,num,mu_factor,mu_f_factor,n_f,is_pp,switch) 	
-	# 	return (I_qG)
-		
 	def dsigma_tot_dydpt(self,y,x_T,num,mu_factor=1,mu_f_factor=1,iso = 'p',n_f = 3, is_pp = False,switch = 'dp_t'):
 		'''Return the total cross section for a point of the phase space (y,x_T)
 		integrated over xi with its integration uncertainites, with:
@@ -975,19 +988,6 @@ class Sigma:
 		Integrand = lambda xi: self.qbarq_M(y,x_T,xi,M,num,mu_factor,mu_f_factor,iso,n_f,is_pp,switch)
 		sigma, err = integrate.quad(Integrand,Xi_min,Xi_max, limit = N_limit)
 		return (conv_fact*sigma, conv_fact*err)
-	
-	# def dsigma_iso_FCEL_dydpt(self,y,x_T,num,mu_factor=1,mu_f_factor=1,n_f = 3, is_pp = False,switch = 'dp_t'):
-	# 	'''Return the FCEL cross section for a point of the phase space (y,x_T)
-	# 	integrated over xi with its integration uncertainites for an isospin view
-	# 	(i.e: Z*sigma_pp +(A-Z)*sigma_pn), with:
-	# 	- y, the rapidity
-	# 	- x_T = 2*p_T/√s ,p_T the transverse momentum
-	# 	- num the member of the pdf set
-	# 	- mu_factor that describes mu = p_T*mu_factor (same for mu_f_factor)
-	# 	- n_f the number of flavours (=3 by default)
-	# 	- is_pp a booleen (=False by default) to tell the collision type
-	# 	- switch the convention of p_T integration (= 'dp_t' by default)'''
-	# 	Integrand = lambda xi: self.FCEL_integrand
 
 	### integration part ###
 	# Rapidity integration
@@ -1018,6 +1018,32 @@ class Sigma:
 			self.sigma_tot_dy = (np.array(sigma),np.array(err_sigma))
 		return self.sigma_tot_dy
 	
+	def dsigma_tot_dy_M(self,x_T,M,num,mu_factor=1,mu_f_factor=1,iso ='p',n_f=3,is_pp = False,switch = 'dp_t'):
+		'''Return the list of the total cross section rapidity dependent and its
+		integration uncertainties
+		(an amelioration would be to add those on pdf) with :
+		- x_T = 2*p_T/√s ,p_T the transverse momentum
+		- num the member of the pdf set
+		- mu_factor that describes mu = p_T*mu_factor (same for mu_f_factor)
+		- iso the isospin variable (='p' by default)
+		- n_f the number of flavours (=3 by default)
+		- is_pp a booleen (=False by default) to tell the collision type
+		- switch the convention of p_T integration (= 'dp_t' by default)'''
+		P = [x_T,M,num,mu_factor,mu_f_factor,iso,n_f,is_pp,switch]
+		sP = self.tot_dy_M_parameters
+		b = self.b(x_T,M)
+		if (sP == []) or ( P != sP):											# Re-compute only if it's the first time, or if parameters are differents from the last ones
+			self.tot_dy_M_parameters = P
+			Y = Y_list_M(x_T,b,Z = self.Z)
+			sigma = []
+			err_sigma = []
+			for y in Y:
+				Int = self.dsigma_tot_dydpt_M(y,x_T,M,num,mu_factor,mu_f_factor,iso ,n_f,is_pp,switch)
+				sigma.append(Int[0])
+				err_sigma.append(Int[1])
+			self.sigma_tot_dy_M = (np.array(sigma),np.array(err_sigma))
+		return self.sigma_tot_dy_M
+
 	def dsigma_qG_dy(self,x_T,num,mu_factor=1,mu_f_factor=1,n_f=3,is_pp = False,switch = 'dp_t'):
 		'''Return the list of the qG cross section rapidity dependent
 		and its integration uncertainties, with:
@@ -1041,6 +1067,30 @@ class Sigma:
 			self.sigma_qG_dy = (np.array(sigma),np.array(err_sigma))
 		return self.sigma_qG_dy
 	
+	def dsigma_qG_dy_M(self,x_T,M,num,mu_factor=1,mu_f_factor=1,n_f=3,is_pp = False,switch = 'dp_t'):
+		'''Return the list of the qG cross section rapidity dependent
+		and its integration uncertainties, with:
+		- x_T = 2*p_T/√s ,p_T the transverse momentum
+		- num the member of the pdf set
+		- mu_factor that describes mu = p_T*mu_factor (same for mu_f_factor)
+		- n_f the number of flavours (=3 by default)
+		- is_pp a booleen (=False by default) to tell the collision type
+		- switch the convention of p_T integration (= 'dp_t' by default)'''
+		P = [x_T,M,num,mu_factor,mu_f_factor,n_f,is_pp,switch]
+		sP = self.qG_dy_M_parameters
+		b = self.b(x_T,M)
+		if (sP == []) or (P != sP):
+			self.qG_dy_M_parameters = P
+			Y = Y_list_M(x_T,b,Z = self.Z)
+			sigma = []
+			err_sigma = []
+			for y in Y:
+				Int = self.dsigma_qG_dydpt_M(y,x_T,M,num,mu_factor,mu_f_factor,n_f,is_pp,switch)
+				sigma.append(Int[0])
+				err_sigma.append(Int[1])
+			self.sigma_qG_dy_M = (np.array(sigma),np.array(err_sigma))
+		return self.sigma_qG_dy_M
+	
 	def dsigma_Gq_dy(self,x_T,num,mu_factor=1,mu_f_factor=1,iso ='p',n_f=3,is_pp = False,switch= 'dp_t'):
 		'''Return the list of the Gq cross section rapidity dependent
 		and its integration uncertainties, with:
@@ -1063,9 +1113,32 @@ class Sigma:
 				sigma.append(Int[0])
 				err_sigma.append(Int[1])
 			self.sigma_Gq_dy = (np.array(sigma),np.array(err_sigma))
-			return (np.array(sigma),np.array(err_sigma))
-		else:
-			return self.sigma_Gq_dy
+		return self.sigma_Gq_dy
+	
+	def dsigma_Gq_dy_M(self,x_T,M,num,mu_factor=1,mu_f_factor=1,iso ='p',n_f=3,is_pp = False,switch= 'dp_t'):
+		'''Return the list of the Gq cross section rapidity dependent
+		and its integration uncertainties, with:
+		- x_T = 2*p_T/√s ,p_T the transverse momentum
+		- num the member of the pdf set
+		- mu_factor that describes mu = p_T*mu_factor (same for mu_f_factor)
+		- iso the isospin variable (='p' by default)
+		- n_f the number of flavours (=3 by default)
+		- is_pp a booleen (=False by default) to tell the collision type
+		- switch the convention of p_T integration (= 'dp_t' by default)'''
+		P = [x_T,M,num,mu_factor,mu_f_factor,iso,n_f,is_pp,switch]
+		sP = self.Gq_dy_M_parameters
+		b = self.b(x_T,M)
+		if (sP == []) or (P != sP):
+			self.Gq_dy_M_parameters = P
+			Y = Y_list_M(x_T,b, Z = self.Z)
+			sigma = []
+			err_sigma = []
+			for y in Y:
+				Int = self.dsigma_Gq_dydpt_M(y,x_T,M,num,mu_factor,mu_f_factor,iso ,n_f,is_pp,switch)
+				sigma.append(Int[0])
+				err_sigma.append(Int[1])
+			self.sigma_Gq_dy_M = (np.array(sigma),np.array(err_sigma))
+		return self.sigma_Gq_dy_M
 	
 	def dsigma_qqbar_dy(self,x_T,num,mu_factor=1,mu_f_factor=1,iso='p',n_f=3,is_pp = False,switch='dp_t'):
 		'''Return the list of the qqbar cross section rapidity dependent
@@ -1089,9 +1162,32 @@ class Sigma:
 				sigma.append(Int[0])
 				err_sigma.append(Int[1])
 			self.sigma_qqbar_dy = (np.array(sigma),np.array(err_sigma))
-			return (np.array(sigma),np.array(err_sigma))
-		else:
-			return self.sigma_qqbar_dy
+		return self.sigma_qqbar_dy
+		
+	def dsigma_qqbar_dy_M(self,x_T,M,num,mu_factor=1,mu_f_factor=1,iso='p',n_f=3,is_pp = False,switch='dp_t'):
+		'''Return the list of the qqbar cross section rapidity dependent
+		and its integration uncertainties, with:
+		- x_T = 2*p_T/√s ,p_T the transverse momentum
+		- num the member of the pdf set
+		- mu_factor that describes mu = p_T*mu_factor (same for mu_f_factor)
+		- iso the isospin variable (='p' by default)
+		- n_f the number of flavours (=3 by default)
+		- is_pp a booleen (=False by default) to tell the collision type
+		- switch the convention of p_T integration (= 'dp_t' by default)'''
+		P = [x_T,M,num,mu_factor,mu_f_factor,iso,n_f,is_pp,switch]
+		sP = self.qqbar_dy_M_parameters
+		b = self.b(x_T,M)
+		if (sP == []) or (P != sP):
+			self.qqbar_dy_M_parameters = P
+			Y = Y_list_M(x_T,b,Z = self.Z)
+			sigma = []
+			err_sigma = []
+			for y in Y:
+				Int = self.dsigma_qqbar_dydpt_M(y,x_T,M,num,mu_factor,mu_f_factor,iso ,n_f,is_pp,switch)
+				sigma.append(Int[0])
+				err_sigma.append(Int[1])
+			self.sigma_qqbar_dy_M = (np.array(sigma),np.array(err_sigma))
+		return self.sigma_qqbar_dy_M
 	
 	def dsigma_qbarq_dy(self,x_T,num,mu_factor=1,mu_f_factor=1,iso ='p',n_f=3,is_pp = False,switch='dp_t'):
 		'''Return the list of the qbarq cross section rapidity dependent
@@ -1115,9 +1211,32 @@ class Sigma:
 				sigma.append(Int[0])
 				err_sigma.append(Int[1])
 			self.sigma_qbarq_dy = (np.array(sigma),np.array(err_sigma))
-			return (np.array(sigma),np.array(err_sigma))
-		else:
-			return self.sigma_qbarq_dy
+		return self.sigma_qbarq_dy
+	
+	def dsigma_qbarq_dy_M(self,x_T,M,num,mu_factor=1,mu_f_factor=1,iso ='p',n_f=3,is_pp = False,switch='dp_t'):
+		'''Return the list of the qbarq cross section rapidity dependent
+		and its integration uncertainties, with:
+		- x_T = 2*p_T/√s ,p_T the transverse momentum
+		- num the member of the pdf set
+		- mu_factor that describes mu = p_T*mu_factor (same for mu_f_factor)
+		- iso the isospin variable (='p' by default)
+		- n_f the number of flavours (=3 by default)
+		- is_pp a booleen (=False by default) to tell the collision type
+		- switch the convention of p_T integration (= 'dp_t' by default)'''
+		P = [x_T,M,num,mu_factor,mu_f_factor,iso,n_f,is_pp,switch]
+		sP = self.qbarq_dy_M_parameters
+		b = self.b(x_T,M)
+		if (sP == []) or (P != sP):
+			self.qbarq_dy_M_parameters = P
+			Y = Y_list_M(x_T,b,Z=self.Z)
+			sigma = []
+			err_sigma = []
+			for y in Y:
+				Int = self.dsigma_qbarq_dydpt_M(y,x_T,M,num,mu_factor,mu_f_factor,iso ,n_f,is_pp,switch)
+				sigma.append(Int[0])
+				err_sigma.append(Int[1])
+			self.sigma_qbarq_dy_M = (np.array(sigma),np.array(err_sigma))
+		return self.sigma_qbarq_dy_M
 	
 	def dsigma_all_dy(self,x_T,num,mu_factor=1,mu_f_factor=1,iso ='p',n_f=3,is_pp = False,switch= 'dp_t',l = False):
 		'''Return all cross section rapidity dependant components seperately,
@@ -1143,6 +1262,30 @@ class Sigma:
 		else :
 			return[qG,Gq,qqbar,qbarq]
 		
+	def dsigma_all_dy_M(self,x_T,M,num,mu_factor=1,mu_f_factor=1,iso ='p',n_f=3,is_pp = False,switch= 'dp_t',l = False):
+		'''Return all cross section rapidity dependant components seperately,
+		and their integration uncertainties with:
+		- x_T = 2*p_T/√s ,p_T the transverse momentum
+		- num the member of the pdf set
+		- mu_factor that describes mu = p_T*mu_factor (same for mu_f_factor)
+		- iso the isospin variable (='p' by default)
+		- n_f the number of flavours (=3 by default)
+		- is_pp a booleen (=False by default) to tell the collision type
+		- switch the convention of p_T integration (= 'dp_t' by default)
+		- l just changes the order to have first the FCEL sensitives cross section
+		as :
+		[qG,Gq,qqbar,qbarq]
+		(or [qqbar,qbarq,Gq,qG] for l = True)
+		with e.g. qG = (sigma_qG_dy, I_uncertainties_qG_dy)'''
+		qG = self.dsigma_qG_dy_M(x_T,M,num,mu_factor,mu_f_factor,n_f,is_pp, switch)
+		Gq = self.dsigma_Gq_dy_M(x_T,M,num,mu_factor,mu_f_factor,iso,n_f,is_pp ,switch)
+		qqbar = self.dsigma_qqbar_dy_M(x_T,M,num,mu_factor,mu_f_factor,iso,n_f,is_pp ,switch)
+		qbarq = self.dsigma_qbarq_dy_M(x_T,M,num,mu_factor,mu_f_factor,iso,n_f,is_pp ,switch)
+		if l:
+			return [qqbar,qbarq,Gq,qG]
+		else :
+			return[qG,Gq,qqbar,qbarq]
+		
 	def dsigma_FCELG_dy(self,x_T,num,mu_factor=1,mu_f_factor=1,iso ='p',n_f=3,is_pp = False,switch= 'dp_t'):
 		'''Return the components of the total cross section that contribute to
 		FCEL and FCEG effects and their integration uncertainites, with:
@@ -1159,6 +1302,25 @@ class Sigma:
 		Gq = self.dsigma_Gq_dy(x_T,num,mu_factor,mu_f_factor,iso,n_f,is_pp ,switch)
 		qqbar = self.dsigma_qqbar_dy(x_T,num,mu_factor,mu_f_factor,iso,n_f,is_pp ,switch)
 		qbarq = self.dsigma_qbarq_dy(x_T,num,mu_factor,mu_f_factor,iso,n_f,is_pp ,switch)
+		FCEL = (Gq[0]+qqbar[0]+qbarq[0],Gq[1]+qqbar[1]+qbarq[1])
+		return [FCEL,FCEG]
+	
+	def dsigma_FCELG_dy_M(self,x_T,M,num,mu_factor=1,mu_f_factor=1,iso ='p',n_f=3,is_pp = False,switch= 'dp_t'):
+		'''Return the components of the total cross section that contribute to
+		FCEL and FCEG effects and their integration uncertainites, with:
+		- x_T = 2*p_T/√s ,p_T the transverse momentum
+		- num the member of the pdf set
+		- mu_factor that describes mu = p_T*mu_factor (same for mu_f_factor)
+		- iso the isospin variable (='p' by default)
+		- n_f the number of flavours (=3 by default)
+		- is_pp a booleen (=False by default) to tell the collision type
+		- switch the convention of p_T integration (= 'dp_t' by default)
+		as :
+		[FCEL,FCEG] with FCEL = Gq+ qqbar+qbarq and FCEG = qG'''
+		FCEG = self.dsigma_qG_dy_M(x_T,M,num,mu_factor,mu_f_factor,n_f,is_pp, switch)
+		Gq = self.dsigma_Gq_dy_M(x_T,M,num,mu_factor,mu_f_factor,iso,n_f,is_pp ,switch)
+		qqbar = self.dsigma_qqbar_dy_M(x_T,M,num,mu_factor,mu_f_factor,iso,n_f,is_pp ,switch)
+		qbarq = self.dsigma_qbarq_dy_M(x_T,M,num,mu_factor,mu_f_factor,iso,n_f,is_pp ,switch)
 		FCEL = (Gq[0]+qqbar[0]+qbarq[0],Gq[1]+qqbar[1]+qbarq[1])
 		return [FCEL,FCEG]
 		
@@ -1358,9 +1520,33 @@ class Sigma:
 				sigma.append(Int[0])
 				err_sigma.append(Int[1])
 			self.sigma_tot_dpt = (np.array(sigma),np.array(err_sigma))
-			return (np.array(sigma),np.array(err_sigma))
-		else:
-			return self.sigma_tot_dpt
+		return self.sigma_tot_dpt
+	
+	def dsigma_tot_dpt_M(self,y,M,num,mu_factor = 1,mu_f_factor=1,iso ='p',n_f=3,is_pp = False,switch ='dp_t'):
+		'''Return the list of the total cross section transverse momentum dependent
+		and its integration uncertainties, with:
+		- y the rapidity
+		- num the member of the pdf set
+		- mu_factor that describes mu = p_T*mu_factor (same for mu_f_factor)
+		- iso the isospin variable (='p' by default)
+		- n_f the number of flavours (=3 by default)
+		- is_pp a booleen (=False by default) to tell the collision type
+		- switch the convention of p_T integration (= 'dp_t' by default)'''
+		P = [y,M,num,mu_factor,mu_f_factor,iso,n_f,is_pp,switch]
+		sP = self.tot_dpt_M_parameters 
+		if (sP == []) or ( P != sP):											# Re-compute only if it's the first time, or if parameters are differents from the last ones
+			self.tot_pt_M_parameters = P
+			rs = self.rs
+			P_T = self.P_T_list_M(y,M,self.Z)
+			sigma = []
+			err_sigma = []
+			for p_t in P_T:
+				x_T = 2.*p_t/rs
+				Int = self.dsigma_tot_dydpt_M(y,x_T,M,num,mu_factor,mu_f_factor,iso ,n_f,is_pp,switch)
+				sigma.append(Int[0])
+				err_sigma.append(Int[1])
+			self.sigma_tot_dpt_M = (np.array(sigma),np.array(err_sigma))
+		return self.sigma_tot_dpt_M
 	
 	def dsigma_qG_dpt(self,y,num,mu_factor = 1,mu_f_factor=1,n_f=3,is_pp = False,switch='dp_t'):
 		'''Return the list of the qG cross section transverse momentum dependent
@@ -1385,9 +1571,32 @@ class Sigma:
 				sigma.append(Int[0])
 				err_sigma.append(Int[1])
 			self.sigma_qG_dpt = (np.array(sigma),np.array(err_sigma))
-			return (np.array(sigma),np.array(err_sigma))
-		else:
-			return self.sigma_qG_dpt
+		return self.sigma_qG_dpt
+		
+	def dsigma_qG_dpt_M(self,y,M,num,mu_factor = 1,mu_f_factor=1,n_f=3,is_pp = False,switch='dp_t'):
+		'''Return the list of the qG cross section transverse momentum dependent
+		and its integration uncertainties, with:
+		- y the rapidity
+		- num the member of the pdf set
+		- mu_factor that describes mu = p_T*mu_factor (same for mu_f_factor)
+		- n_f the number of flavours (=3 by default)
+		- is_pp a booleen (=False by default) to tell the collision type
+		- switch the convention of p_T integration (= 'dp_t' by default)'''
+		P = [y,M,num,mu_factor,mu_f_factor,n_f,is_pp,switch]
+		sP = self.qG_dpt_M_parameters
+		if (sP == []) or (P != sP):
+			self.qG_dpt_M_parameters = P
+			s = self.s
+			P_T = self.P_T_list_M(y,M,self.Z)
+			sigma = []
+			err_sigma = []
+			for p_t in P_T:
+				x_T = 2.*p_t/pow(s,0.5)
+				Int = self.dsigma_qG_dydpt_M(y,x_T,M,num,mu_factor,mu_f_factor,n_f,is_pp,switch)
+				sigma.append(Int[0])
+				err_sigma.append(Int[1])
+			self.sigma_qG_dpt_M = (np.array(sigma),np.array(err_sigma))
+		return self.sigma_qG_dpt
 	
 	def dsigma_Gq_dpt(self,y,num,mu_factor = 1,mu_f_factor=1,iso ='p',n_f=3,is_pp = False,switch='dp_t'):
 		'''Return the list of the Gq cross section transverse momentum dependent
@@ -1413,9 +1622,33 @@ class Sigma:
 				sigma.append(Int[0])
 				err_sigma.append(Int[1])
 			self.sigma_Gq_dpt = (np.array(sigma),np.array(err_sigma))
-			return (np.array(sigma),np.array(err_sigma))
-		else:
-			return self.sigma_Gq_dpt
+		return self.sigma_Gq_dpt
+	
+	def dsigma_Gq_dpt_M(self,y,M,num,mu_factor = 1,mu_f_factor=1,iso ='p',n_f=3,is_pp = False,switch='dp_t'):
+		'''Return the list of the Gq cross section transverse momentum dependent
+		and its integration uncertainties, with:
+		- y the rapidity
+		- num the member of the pdf set
+		- mu_factor that describes mu = p_T*mu_factor (same for mu_f_factor)
+		- iso the isospin variable (='p' by default)
+		- n_f the number of flavours (=3 by default)
+		- is_pp a booleen (=False by default) to tell the collision type
+		- switch the convention of p_T integration (= 'dp_t' by default)'''
+		P = [y,M,num,mu_factor,mu_f_factor,iso,n_f,is_pp,switch]
+		sP = self.Gq_dpt_M_parameters
+		if (sP == []) or (P != sP):
+			self.Gq_dpt_M_parameters = P
+			s = self.s
+			P_T = self.P_T_list_M(y,M,self.Z)
+			sigma = []
+			err_sigma = []
+			for p_t in P_T:
+				x_T = 2.*p_t/pow(s,0.5)
+				Int = self.dsigma_Gq_dydpt_M(y,x_T,M,num,mu_factor,mu_f_factor,iso ,n_f,is_pp,switch)
+				sigma.append(Int[0])
+				err_sigma.append(Int[1])
+			self.sigma_Gq_dpt_M = (np.array(sigma),np.array(err_sigma))
+		return self.sigma_Gq_dpt_M
 	
 	def dsigma_qqbar_dpt(self,y,num,mu_factor = 1,mu_f_factor=1,iso='p',n_f=3,is_pp = False ,switch='dp_t'):
 		'''Return the list of the qqbar cross section transverse momentum dependent
@@ -1441,9 +1674,33 @@ class Sigma:
 				sigma.append(Int[0])
 				err_sigma.append(Int[1])
 			self.sigma_qqbar_dpt = (np.array(sigma),np.array(err_sigma))
-			return (np.array(sigma),np.array(err_sigma))
-		else:
-			return self.sigma_qqbar_dpt
+		return self.sigma_qqbar_dpt
+	
+	def dsigma_qqbar_dpt_M(self,y,M,num,mu_factor = 1,mu_f_factor=1,iso='p',n_f=3,is_pp = False ,switch='dp_t'):
+		'''Return the list of the qqbar cross section transverse momentum dependent
+		and its integration uncertainties, with:
+		- y the rapidity
+		- num the member of the pdf set
+		- mu_factor that describes mu = p_T*mu_factor (same for mu_f_factor)
+		- iso the isospin variable (='p' by default)
+		- n_f the number of flavours (=3 by default)
+		- is_pp a booleen (=False by default) to tell the collision type
+		- switch the convention of p_T integration (= 'dp_t' by default)'''
+		P = [y,M,num,mu_factor,mu_f_factor,iso,n_f,is_pp,switch]
+		sP = self.qqbar_dpt_M_parameters
+		if (sP == []) or (P != sP):
+			self.qqbar_dpt_M_parameters = P
+			s = self.s
+			P_T = self.P_T_list_M(y,M,self.Z)
+			sigma = []
+			err_sigma = []
+			for p_t in P_T:
+				x_T = 2.*p_t/pow(s,0.5)
+				Int = self.dsigma_qqbar_dydpt_M(y,x_T,M,num,mu_factor,mu_f_factor,iso ,n_f,is_pp,switch)
+				sigma.append(Int[0])
+				err_sigma.append(Int[1])
+			self.sigma_qqbar_dpt_M = (np.array(sigma),np.array(err_sigma))
+		return self.sigma_qqbar_dpt_M
 	
 	def dsigma_qbarq_dpt(self,y,num,mu_factor = 1,mu_f_factor=1,iso ='p',n_f=3,is_pp = False,switch ='dp_t'):
 		'''Return the list of the qbarq cross section transverse momentum dependent
@@ -1469,10 +1726,34 @@ class Sigma:
 				sigma.append(Int[0])
 				err_sigma.append(Int[1])
 			self.sigma_qbarq_dpt = (np.array(sigma),np.array(err_sigma))
-			return (np.array(sigma),np.array(err_sigma))
-		else:
-			return self.sigma_qbarq_dpt
+		return self.sigma_qbarq_dpt
 	
+	def dsigma_qbarq_dpt_M(self,y,M,num,mu_factor = 1,mu_f_factor=1,iso ='p',n_f=3,is_pp = False,switch ='dp_t'):
+		'''Return the list of the qbarq cross section transverse momentum dependent
+		and its integration uncertainties, with:
+		- y the rapidity
+		- num the member of the pdf set
+		- mu_factor that describes mu = p_T*mu_factor (same for mu_f_factor)
+		- iso the isospin variable (='p' by default)
+		- n_f the number of flavours (=3 by default)
+		- is_pp a booleen (=False by default) to tell the collision type
+		- switch the convention of p_T integration (= 'dp_t' by default)'''
+		P = [y,M,num,mu_factor,mu_f_factor,iso,n_f,is_pp,switch]
+		sP = self.qbarq_dpt_M_parameters
+		if (sP == []) or (P != sP):
+			self.qbarq_dpt_M_parameters = P
+			s = self.s
+			P_T = self.P_T_list_M(y,M,self.Z)
+			sigma = []
+			err_sigma = []
+			for p_t in P_T:
+				x_T = 2.*p_t/pow(s,0.5)
+				Int = self.dsigma_qbarq_dydpt_M(y,x_T,M,num,mu_factor,mu_f_factor,iso ,n_f,is_pp,switch)
+				sigma.append(Int[0])
+				err_sigma.append(Int[1])
+			self.sigma_qbarq_dpt_M = (np.array(sigma),np.array(err_sigma))
+		return self.sigma_qbarq_dpt_M
+
 	def sigmal_all_dpt(self,y,num,iso ='p',n_f=3,is_pp = False,switch ='dp_t',mu_factor = 1,mu_f_factor=1):
 		'''Return all cross section transverse momentum dependant components seperately,
 		and their integration uncertainties with:
@@ -1489,6 +1770,24 @@ class Sigma:
 		Gq = self.dsigma_Gq_dpt(y,num,mu_factor,mu_f_factor,iso,n_f,is_pp,switch)
 		qqbar = self.dsigma_qqbar_dpt(y,num,mu_factor,mu_f_factor,iso,n_f,is_pp,switch)
 		qbarq = self.dsigma_qbarq_dpt(y,num,mu_factor,mu_f_factor,iso,n_f,is_pp,switch)
+		return[qG,Gq,qqbar,qbarq]
+	
+	def sigmal_all_dpt_M(self,y,M,num,iso ='p',n_f=3,is_pp = False,switch ='dp_t',mu_factor = 1,mu_f_factor=1):
+		'''Return all cross section transverse momentum dependant components seperately,
+		and their integration uncertainties with:
+		- y the rapidity
+		- num the member of the pdf set
+		- mu_factor that describes mu = p_T*mu_factor (same for mu_f_factor)
+		- iso the isospin variable (='p' by default)
+		- n_f the number of flavours (=3 by default)
+		- is_pp a booleen (=False by default) to tell the collision type
+		- switch the convention of p_T integration (= 'dp_t' by default)
+		as :
+		[qG,Gq,qqbar,qbarq] with e.g. qG = (sigma_qG_dpt, I_uncertainties_qG_dpt)'''
+		qG = self.dsigma_qG_dpt_M(y,M,num,mu_factor,mu_f_factor,n_f,is_pp,switch)
+		Gq = self.dsigma_Gq_dpt_M(y,M,num,mu_factor,mu_f_factor,iso,n_f,is_pp,switch)
+		qqbar = self.dsigma_qqbar_dpt_M(y,M,num,mu_factor,mu_f_factor,iso,n_f,is_pp,switch)
+		qbarq = self.dsigma_qbarq_dpt_M(y,M,num,mu_factor,mu_f_factor,iso,n_f,is_pp,switch)
 		return[qG,Gq,qqbar,qbarq]
 		
 	def dsigma_FCELG_dpt(self,y,num,iso ='p',n_f=3,is_pp = False,switch ='dp_t',mu_factor = 1,mu_f_factor=1):
@@ -1508,6 +1807,26 @@ class Sigma:
 		Gq = self.dsigma_Gq_dpt(y,num,mu_factor,mu_f_factor,iso,n_f,is_pp,switch)
 		qqbar = self.dsigma_qqbar_dpt(y,num,mu_factor,mu_f_factor,iso,n_f,is_pp,switch)
 		qbarq = self.dsigma_qbarq_dpt(y,num,mu_factor,mu_f_factor,iso,n_f,is_pp,switch)
+		FCEL = (Gq[0]+qqbar[0]+qbarq[0],Gq[1]+qqbar[1]+qbarq[1])
+		return[FCEL,FCEG]
+	
+	def dsigma_FCELG_dpt_M(self,y,M,num,iso ='p',n_f=3,is_pp = False,switch ='dp_t',mu_factor = 1,mu_f_factor=1):
+		'''Return the components of the total cross section transeverse momentum 
+		dependant that contribute to FCEL and FCEG effects and their 
+		integration uncertainites, with:
+		- y the rapidity
+		- num the member of the pdf set
+		- mu_factor that describes mu = p_T*mu_factor (same for mu_f_factor)
+		- iso the isospin variable (='p' by default)
+		- n_f the number of flavours (=3 by default)
+		- is_pp a booleen (=False by default) to tell the collision type
+		- switch the convention of p_T integration (= 'dp_t' by default)
+		as :
+		[FCEL,FCEG] with FCEL = Gq+ qqbar+qbarq and FCEG = qG'''
+		FCEG = self.dsigma_qG_dpt_M(y,M,num,mu_factor,mu_f_factor,n_f,is_pp,switch)
+		Gq = self.dsigma_Gq_dpt_M(y,M,num,mu_factor,mu_f_factor,iso,n_f,is_pp,switch)
+		qqbar = self.dsigma_qqbar_dpt_M(y,M,num,mu_factor,mu_f_factor,iso,n_f,is_pp,switch)
+		qbarq = self.dsigma_qbarq_dpt_M(y,M,num,mu_factor,mu_f_factor,iso,n_f,is_pp,switch)
 		FCEL = (Gq[0]+qqbar[0]+qbarq[0],Gq[1]+qqbar[1]+qbarq[1])
 		return[FCEL,FCEG]
 		
@@ -3484,6 +3803,19 @@ class Sigma:
 		P_T = np.linspace(p_t_min,p_max,N_pt)
 		return P_T
 	
+	def P_T_list_M(self,y,M,Z = 82):
+		'''The numpy linspace of transverse momentum in GeV, with:
+		- y the rapidity
+		- p_t_min the minimum wanted if the phase space is too large
+		- p_t_max same for the maximum wanted'''
+		p_t_min,p_t_max = Z_to_p_Tlim[Z]
+		s = self.s
+		p_max = min(p_t_max,min(np.sqrt(s*np.exp(2*y)-M**2),np.sqrt(s*np.exp(-2*y)-M**2)))
+		if p_max<p_t_min:
+			raise ValueError(f'p_t_min (={p_t_min}) is greater than p_max (={p_max})')
+		P_T = np.linspace(p_t_min,p_max,N_pt)
+		return P_T
+
 	def Nu_list(self,y,xi,x_T,num,mu2,N_nu = 100,eps = 1e-10):
 		''''''
 		A = self.A

@@ -89,7 +89,7 @@ def L(A):
         return Lp
 
 class proba():
-    def __init__(self,A,B,rs,p_t,y,alpha_s,Fc,m,q0=0.07,z=0):
+    def __init__(self,A,B,rs,p_t,y,alpha_s,Fc,m,q0=0.07,z=0,photon=True):
         self.A = A          											#Nombre de masses du noyau cible 
         self.B = B          											#Nombre de masse de la particule incidente
         self.p_t = p_t          										#transverse momentum
@@ -107,6 +107,7 @@ class proba():
         self.x0B = hbar_c/(2*mp*L(self.B))
         self.Lambda_B = lambda xi: max(self.Lambda(self.B,xi),Lambda_QCD)
         self.Lambda_A = lambda xi: self.Lambda(self.A,xi)
+        self.photon = photon
 
     def xA(self,xi):
         return min(self.x0A,self.x2(xi))
@@ -136,9 +137,9 @@ class proba():
         z = self.z
         if z != 0:
             m_t = m_t/z
-        if m == 0:
+        if self.photon:
             return(m_t/(1-xi))
-        elif m >0:
+        else:
             return(m_t/np.sqrt(xi*(1-xi)))
 
     def sigma_hat(self,xi):
