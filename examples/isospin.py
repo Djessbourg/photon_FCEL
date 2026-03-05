@@ -24,7 +24,7 @@ rs = 8800
 # rs = 200
 s = (rs)**2 # CM energy in Gev2
 
-proton = ['NNPDF40_nlo_as_01180','MSHT20nlo_as118','CT18NLO' ] #  Here put whatever PDF_set you want to compare 
+proton = ['NNPDF40_nlo_as_01180'] #,'MSHT20nlo_as118','CT18NLO'   Here put whatever PDF_set you want to compare 
 
 Pb = "nNNPDF30_nlo_as_0118_A208_Z82"
 
@@ -56,7 +56,7 @@ PDF=[]
 RpA4 =[]
 
 for i,prot in enumerate(proton):
-    f_name = prot+'_RpA4_'+str(rs)+'GeV_Z'+str(Z)+'_A'+str(A)+str(p_T)+'GeV.txt'
+    f_name = 'test'+prot+'_RpA4_'+str(rs)+'GeV_Z'+str(Z)+'_A'+str(A)+'_'+str(p_T)+'GeV.txt'
     PDF.append(sig.Sigma(prot,Pb,s,Z,A))
     if os.path.exists(os.path.join(RpA_dir,f_name)):
         print(f" '{f_name}' already exists: loading file")
@@ -70,17 +70,17 @@ for i,prot in enumerate(proton):
         np.savetxt(os.path.join(RpA_dir,f_name),r)
         print(f" '{f_name}' has been created")
 
-Y = sig.Y_list(x_T)
+Y = sig.Y_list(x_T,Z)
 # Comparing for each pdf set the 4 ratios in the paper
 for i,prot in enumerate(proton):
     fig, ax = plt.subplots(constrained_layout=True)
     ax.xaxis.set_minor_locator(MultipleLocator(1))
     ax.xaxis.set_major_locator(MultipleLocator(2))
     RpA, Rpp_iso, R_pA_iso, R_pA_wo_iso = RpA4[i]
-    plt.plot(Y,RpA,label='RpA clasic')
+    plt.plot(Y,RpA,label=r'$R_{\text{pp}}$')
     plt.plot(Y,Rpp_iso, label='iso')
     plt.plot(Y,R_pA_iso,label='iso+FCEL')
-    plt.plot(Y,R_pA_wo_iso,label='FCEL w/o iso')
+    plt.plot(Y,R_pA_wo_iso,label=r'$\tilde{R}_{\text{pA}}$')
     plt.axhline(y=1, color='grey', alpha=0.3)
     plot_usuals(n=2,loca='upper center',s1=f_size-a)
     plt.xlabel(r'$y$',fontsize=f_size)

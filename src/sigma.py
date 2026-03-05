@@ -3500,9 +3500,9 @@ class Sigma:
 		Riso_plus,Riso_minus = err_Riso[0],err_Riso[1]
 		Fnp =  (Riso-Z/A)*A/(A-Z)
 		Fnp_plus, Fnp_minus = A/(A-Z)*Riso_plus, A/(A-Z)*Riso_minus 
-		Rpp ,err_Rpp, err_var_Rpp = self.Uncertainties_RpA_dy(x_T,mu_factor=mu_factor,mu_f_factor=mu_f_factor,n_f=n_f,switch =switch,eps = eps,var_int=var_int,var_err=var_err)
+		Y,Rpp ,err_Rpp, err_var_Rpp = self.Uncertainties_RpA_dy(x_T,mu_factor=mu_factor,mu_f_factor=mu_f_factor,n_f=n_f,switch =switch,eps = eps,var_int=var_int,var_err=var_err)
 		Rpp_plus,Rpp_minus = err_Rpp[0],err_Rpp[1]
-		Rpn ,err_Rpn, err_var_Rpn = self.Uncertainties_RpA_dy(x_T,mu_factor=mu_factor,mu_f_factor=mu_f_factor,iso ='n',n_f=n_f,switch =switch,eps = eps,var_int=var_int,var_err=var_err)
+		Y,Rpn ,err_Rpn, err_var_Rpn = self.Uncertainties_RpA_dy(x_T,mu_factor=mu_factor,mu_f_factor=mu_f_factor,iso ='n',n_f=n_f,switch =switch,eps = eps,var_int=var_int,var_err=var_err)
 		Rpn_plus,Rpn_minus = err_Rpn[0],err_Rpn[1]
 		Riso_FCELG = (Z/A)*(Rpp-Fnp*Rpn)+Fnp*Rpn
 		Riso_FCELG_plus,Riso_FCELG_minus=  ((Rpp_plus*Z/A)**2+(Fnp_plus**2+Rpn_plus**2)*(1-Z/A)**2)**0.5, ((Rpp_minus*Z/A)**2+(Fnp_minus**2+Rpn_minus**2)*(1-Z/A)**2)**0.5
@@ -3534,6 +3534,35 @@ class Sigma:
 		pn = self.dsigma_tot_dpt(y,num,mu_factor=mu_factor,mu_f_factor=mu_f_factor,iso='n',n_f=n_f,is_pp=True,switch =switch)[0]
 		return(A-Z)*pn/(A*pp)
 	
+	def True_RpA_dydpt(self,y,x_T,num,q0,mu_factor=1,mu_f_factor=1,n_f=3,switch ='dp_t',eps = 1e-15,var_int='nu'):
+		Z = self.Z
+		A = self.A
+		C_n_p_cen = self.C_n_p_dydpt(y,x_T,num,n_f=n_f,switch =switch)
+		Rpp_cen = self.Rpp_FCELG_dydpt(y,x_T,num,q0,mu_factor=mu_factor,mu_f_factor=mu_f_factor,n_f=n_f,switch =switch,eps = eps,var_int=var_int)
+		Rpn_cen = self.Rpp_FCELG_dydpt(y,x_T,num,q0,mu_factor=mu_factor,mu_f_factor=mu_f_factor,iso='n',n_f=n_f,switch =switch,eps = eps,var_int=var_int)
+		True_RpA = (Z/A)*Rpp_cen + C_n_p_cen*Rpn_cen
+		return True_RpA
+
+	def True_RpA_dy(self,x_T,num,q0,mu_factor=1,mu_f_factor=1,n_f=3,switch ='dp_t',eps = 1e-15,var_int='nu'):
+		'''Return the true Rpa (with FCEL and FCEG effects)'''
+		Z = self.Z
+		A = self.A
+		C_n_p_cen = self.C_n_p_dy(x_T,num,n_f=n_f,switch =switch)
+		Rpp_cen = self.Rpp_FCELG_dy(x_T,num,q0,mu_factor=mu_factor,mu_f_factor=mu_f_factor,n_f=n_f,switch =switch,eps = eps,var_int=var_int)
+		Rpn_cen = self.Rpp_FCELG_dy(x_T,num,q0,mu_factor=mu_factor,mu_f_factor=mu_f_factor,iso='n',n_f=n_f,switch =switch,eps = eps,var_int=var_int)
+		True_RpA = (Z/A)*Rpp_cen + C_n_p_cen*Rpn_cen
+		return True_RpA
+	
+	def True_RpA_dpt(self,y,num,q0,mu_factor=1,mu_f_factor=1,n_f=3,switch ='dp_t',eps = 1e-15,var_int='nu'):
+		'''Return the true Rpa (with FCEL and FCEG effects)'''
+		Z = self.Z
+		A = self.A
+		C_n_p_cen = self.C_n_p_dpt(y,num,n_f=n_f,switch =switch)
+		Rpp_cen = self.Rpp_FCELG_dpt(y,num,q0,mu_factor=mu_factor,mu_f_factor=mu_f_factor,n_f=n_f,switch =switch,eps = eps,var_int=var_int)
+		Rpn_cen = self.Rpp_FCELG_dpt(y,num,q0,mu_factor=mu_factor,mu_f_factor=mu_f_factor,iso='n',n_f=n_f,switch =switch,eps = eps,var_int=var_int)
+		True_RpA = (Z/A)*Rpp_cen + C_n_p_cen*Rpn_cen
+		return True_RpA
+	
 	def RpA_wo_iso_dydpt(self,y,x_T,num,q0,mu_factor=1,mu_f_factor=1,n_f=3,switch ='dp_t',eps = 1e-15,var_int='nu'):
 		'''Return the true Rpa (with FCEL and FCEG effects) without isospin effects'''
 		Z = self.Z
@@ -3564,6 +3593,108 @@ class Sigma:
 		R_wo_iso = Rpp_cen/(1+C_n_p_cen)+Rpn_cen/(1+1/C_n_p_cen)
 		return R_wo_iso
 	
+	def Uncertainties_True_RpA_dy(self,x_T,n_f=3,switch ='dp_t',eps = 1e-15,var_int='nu',q0_list=[0.07,0.05,0.09],var_err='q0,mu,pdf'):
+		p_set = self.p_set
+		Uplus_pdf, Uminus_pdf = [],[]
+		Y = Y_list(x_T,Z=self.Z)
+		q_list = [q0_list[1],q0_list[2]]
+		q_val= []
+		factor = [1./2.,2]
+		mu_factor_list = [(i,j) for i in factor for j in factor]
+		mu_val =[]
+		#central value
+		print('central value')
+		num_cen = 0 
+		q0_cen =q0_list[0]
+		Ucen = self.True_RpA_dy(x_T,num_cen,q0_cen,n_f=n_f,switch =switch,eps = eps,var_int=var_int)
+		#uncertainties part
+		if 'q0' in var_err:
+			for q in q_list:
+				print('q0 = '+str(q))
+				R_q = self.True_RpA_dy(x_T,num_cen,q,n_f=n_f,switch =switch,eps = eps,var_int=var_int)
+				q_val.append(R_q)
+			Uminus_q , Uplus_q = min_max(q_val)
+			Uminus_q, Uplus_q = Ucen - Uminus_q, Uplus_q - Ucen
+		if 'mu' in var_err:
+			for (a,b) in mu_factor_list:
+				print('(mu_factor,mu_f_factor) = '+str((a,b)))
+				R_mu = self.True_RpA_dy(x_T,num_cen,q0_cen,mu_factor=a,mu_f_factor=b,n_f=n_f,switch =switch,eps = eps,var_int=var_int)
+				mu_val.append(R_mu)
+			Uminus_mu, Uplus_mu = min_max(mu_val)
+			Uminus_mu , Uplus_mu = Ucen-Uminus_mu, Uplus_mu-Ucen
+		if 'pdf' in var_err:
+			print('Computation on pdf set')
+			for j,y in enumerate(Y):
+				print('y = '+str(y)+'| '+str(j+1)+'/'+str(N_y))
+				y_pdf_val =[Ucen[j]]
+				for i in range(1,p_set.size):
+					R_pdf = self.True_RpA_dydpt(y,x_T,i,q0_cen,n_f=n_f,switch =switch,eps = eps,var_int=var_int)
+					y_pdf_val.append(R_pdf)
+				unc_pdf = p_set.uncertainty(y_pdf_val)
+				Uplus_pdf.append(unc_pdf.errplus); Uminus_pdf.append(unc_pdf.errminus)
+			Uplus_pdf , Uminus_pdf = np.array(Uplus_pdf), np.array(Uminus_pdf)
+		if 'pdf' not in var_err:
+			Uplus_pdf, Uminus_pdf = np.zeros_like(Y),np.zeros_like(Y)
+		if 'mu' not in var_err:
+			Uplus_mu, Uminus_mu = np.zeros_like(Y),np.zeros_like(Y)
+		if 'q0' not in var_err:
+			Uplus_q, Uminus_q = np.zeros_like(Y),np.zeros_like(Y)
+		Uplus = np.sqrt(Uplus_q**2+Uplus_mu**2+Uplus_pdf**2)
+		Uminus = np.sqrt(Uminus_q**2+Uminus_mu**2+Uminus_pdf**2)
+		return [Y,Ucen,[Uplus,Uminus],[Uplus_q,Uminus_q,Uplus_mu,Uminus_mu,Uplus_pdf,Uminus_pdf]]
+	
+	def Uncertainties_True_RpA_dpt(self,y,n_f=3,switch ='dp_t',eps = 1e-15,var_int='nu',q0_list=[0.07,0.05,0.09],var_err='q0,mu,pdf'):
+		rs =self.rs
+		p_set = self.p_set
+		Uplus_pdf, Uminus_pdf = [],[]
+		P_T = self.P_T_list(y,self.Z)
+		q_list = [q0_list[1],q0_list[2]]
+		q_val= []
+		factor = [1./2.,2]
+		mu_factor_list = [(i,j) for i in factor for j in factor]
+		mu_val =[]
+		#central value
+		print('central value')
+		num_cen = 0 
+		q0_cen =q0_list[0]
+		Ucen = self.True_RpA_dpt(y,num_cen,q0_cen,n_f=n_f,switch =switch,eps = eps,var_int=var_int)
+		#uncertainties part
+		if 'q0' in var_err:
+			for q in q_list:
+				print('q0 = '+str(q))
+				U_q = self.True_RpA_dpt(y,num_cen,q,n_f=n_f,switch =switch,eps = eps,var_int=var_int)
+				q_val.append(U_q)
+			Uminus_q , Uplus_q = min_max(q_val)
+			Uminus_q, Uplus_q = Ucen - Uminus_q, Uplus_q - Ucen
+		if 'mu' in var_err:
+			for (a,b) in mu_factor_list:
+				print('(mu_factor,mu_f_factor) = '+str((a,b)))
+				U_mu = self.True_RpA_dpt(y,num_cen,q0_cen,mu_factor=a,mu_f_factor=b,n_f=n_f,switch =switch,eps = eps,var_int=var_int)
+				mu_val.append(U_mu)
+			Uminus_mu, Uplus_mu = min_max(mu_val)
+			Uminus_mu , Uplus_mu = Ucen-Uminus_mu, Uplus_mu-Ucen
+		if 'pdf' in var_err:
+			print('Computation on pdf set')
+			for j,pt in enumerate(P_T):
+				print('pt = '+str(pt)+'| '+str(j+1)+'/'+str(N_pt))
+				pt_pdf_val =[Ucen[j]]
+				x_T = 2*pt/rs
+				for i in range(1,p_set.size):
+					U_pdf = self.True_RpA_dydpt(y,x_T,i,q0_cen,n_f=n_f,switch =switch,eps = eps,var_int=var_int)
+					pt_pdf_val.append(U_pdf)
+				unc_pdf = p_set.uncertainty(pt_pdf_val)
+				Uplus_pdf.append(unc_pdf.errplus); Uminus_pdf.append(unc_pdf.errminus)
+			Uplus_pdf , Uminus_pdf = np.array(Uplus_pdf), np.array(Uminus_pdf)
+		if 'pdf' not in var_err:
+			Uplus_pdf, Uminus_pdf = np.zeros_like(P_T),np.zeros_like(P_T)
+		if 'mu' not in var_err:
+			Uplus_mu, Uminus_mu = np.zeros_like(P_T),np.zeros_like(P_T)
+		if 'q0' not in var_err:
+			Uplus_q, Uminus_q = np.zeros_like(P_T),np.zeros_like(P_T)
+		Uplus = np.sqrt(Uplus_q**2+Uplus_mu**2+Uplus_pdf**2)
+		Uminus = np.sqrt(Uminus_q**2+Uminus_mu**2+Uminus_pdf**2)
+		return [P_T,Ucen,[Uplus,Uminus],[Uplus_q,Uminus_q,Uplus_mu,Uminus_mu,Uplus_pdf,Uminus_pdf]]
+
 	def Uncertainties_RpA_wo_iso_dy(self,x_T,n_f=3,switch ='dp_t',eps = 1e-15,var_int='nu',q0_list=[0.07,0.05,0.09],var_err='q0,mu,pdf'):
 		'''Return the 4 ratios for the isospin study:
 		- RpA (or called Rpp^FCEL/G) = sigma_pp^FCEL/sigma_pp
