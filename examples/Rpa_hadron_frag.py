@@ -154,13 +154,27 @@ f_alphas = {}
 f_dirs={}
 Processes = {}
 
+n_f_alphas = {}
+n_f_dirs={}
+n_Processes = {}
+
+pA_f_dirs={}
+pA_Processes = {}
+
 for pt in p_T_dispo:
 	pawres_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), 'copy_pawres_rs'+str(rs)+'_p_t'+str(pt))) # put here your jetphox data
 	file = uproot.open(os.path.join(pawres_dir,"LO_frag_ratios.root"))
+
+	n_pawres_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), 'copy_pawres_neutron_rs'+str(rs)+'_p_t'+str(pt))) # put here your jetphox data
+	n_file = uproot.open(os.path.join(n_pawres_dir,"LO_frag_ratios.root"))
 	# retrieve all fragmentaion histograms
 	histo = {k: file[k] for k in file.keys() if file[k].classname.startswith("TH1")} #labels are the same as the process dict but with a ';1' in addition
 	f_alpha_cs = {}
 	f_alpha_smooth = {}
+
+	n_histo = {k: n_file[k] for k in n_file.keys() if n_file[k].classname.startswith("TH1")} #labels are the same as the process dict but with a ';1' in addition
+	n_f_alpha_cs = {}
+	n_f_alpha_smooth = {}
 	# Create a dictionary of cubic spline fits of the f_alpha
 	for k in histo.keys():
 		values = histo[k].values()
@@ -173,11 +187,27 @@ for pt in p_T_dispo:
 		lil_Y = np.linspace(min_y, max_y,31)
 		smooth2 = make_smoothing_spline(lil_Y, smooth(lil_Y))
 		f_alpha_cs[prefix(k)]=cs 													# cs gives an array for a float or an array of float given
-		f_alpha_smooth[prefix(k)]=smooth2 											# smooth also, but smoother
+		f_alpha_smooth[prefix(k)]=smooth2											# smooth also, but smoother
+
+		n_values = n_histo[k].values()
+		n_edges = n_histo[k].axes[0].edges()
+		n_centers = (n_edges[:-1] + n_edges[1:]) / 2.
+		n_cs = CubicSpline(n_centers, n_values)
+		n_smooth = make_smoothing_spline(n_centers, n_values)
+		n_smooth2 = make_smoothing_spline(lil_Y, n_smooth(lil_Y))
+		n_f_alpha_cs[prefix(k)]=n_cs 													# cs gives an array for a float or an array of float given
+		n_f_alpha_smooth[prefix(k)]=n_smooth2											# smooth also, but smoother
 	f_alphas[pt]=f_alpha_smooth
+
+	n_f_alphas[pt]=n_f_alpha_smooth
+
 	# Same steps for f_dir
 	Rdir = uproot.open(os.path.join(pawres_dir,"ggddir_onef.root"))
 	Ronef = uproot.open(os.path.join(pawres_dir,"ggodir_onef.root"))
+
+	n_Rdir = uproot.open(os.path.join(n_pawres_dir,"ggddir_onef.root"))
+	n_Ronef = uproot.open(os.path.join(n_pawres_dir,"ggodir_onef.root"))
+
 	fname = 'hp20;1'
 	hdir = Rdir[fname]
 	honef = Ronef[fname]
@@ -189,22 +219,49 @@ for pt in p_T_dispo:
 	fdir  = Dir/Tot
 	f_dir = CubicSpline(centers,fdir)
 	f_dirs[pt]=f_dir
-	Processus = {} 																	# dict for all cross sections interpolated from jetphox data
+	Processus = {}
+	
+	n_hdir = n_Rdir[fname]
+	n_honef = n_Ronef[fname]
+	n_Dir = n_hdir.values()
+	n_Onef = n_honef.values()
+	n_edges = n_hdir.axes[0].edges()
+	n_centers = (n_edges[:-1] + n_edges[1:]) / 2.
+	n_Tot = n_Dir+n_Onef
+	n_fdir  = n_Dir/n_Tot
+	n_f_dir = CubicSpline(n_centers,n_fdir)
+	n_f_dirs[pt]=n_f_dir
+	n_Processus = {} 	 																	# dict for all cross sections interpolated from jetphox data
+	
+	pA_Processus = {} 
 	for p_num in list(process.keys()):
 		fn = 'ggoLOdiag_'+p_num+'.root'
+
 		file = uproot.open(os.path.join(pawres_dir,fn))
 		histo = file[fname]
 		Values = histo.values()
 		edges = histo.axes[0].edges()
 		rapidity = (edges[:-1] + edges[1:]) / 2.
-		# 	cs = CubicSpline(rapidity,Values)
 		smooth = make_smoothing_spline(rapidity,Values)
 		max_y = sig.Z_to_ylim[Z]
 		min_y = -1*max_y
 		lil_Y = np.linspace(min_y, max_y,31)
 		smooth2 = make_smoothing_spline(lil_Y, smooth(lil_Y))
-		Processus[p_num] = smooth2
+		Processus[p_num] = A*smooth2							# *A to normalise with the denominator A*sigma_pp for every collisions
+
+		n_file = uproot.open(os.path.join(n_pawres_dir,fn))
+		n_histo = n_file[fname]
+		n_Values = n_histo.values()
+		n_smooth = make_smoothing_spline(rapidity,n_Values)
+		n_smooth2 = make_smoothing_spline(lil_Y, n_smooth(lil_Y))
+		n_Processus[p_num] = A*n_smooth2
+
+		pA_Processus[p_num] = Z*smooth2+(A-Z)*n_smooth2
+
+
 	Processes[pt]=Processus
+	n_Processes[pt] = n_Processus
+	pA_Processes[pt] = pA_Processus
 
 
 def f_alpha_pt(pt):
@@ -214,11 +271,18 @@ def f_alpha_pt(pt):
 def f_dir_pt(pt):
 	return f_dirs[pt]
 
-def Processus_pt(pt):
-	return Processes[pt]
+def Processus_pt(pt,coll = 'pp'):
+	if coll == 'pp':
+		return Processes[pt]
+	elif coll == 'pn':
+		return n_Processes[pt]
+	elif coll == 'pA':
+		return pA_Processes[pt]
+	else:
+		raise ValueError(f"{coll} is not a valid argument. Try 'pp','pn' or 'pA' ")
 
-def cross_section(y,pt,p_num):
-	return Processus_pt(pt)[p_num](y)
+def cross_section(y,pt,p_num,coll='pp'):
+	return Processus_pt(pt,coll)[p_num](y)
 
 def sign(a):
 	'''Gives back the sign of a real number a'''
@@ -238,7 +302,7 @@ def f_xi(Fc,xi):
 	elif Fc == 0:
 		raise ValueError("Fc = 0")
 
-def Integrand(y,pt,p_num,Fc,z,q):
+def Integrand(y,pt,p_num,Fc,z,q,coll = 'pp'):
 	'''Gives back the integrand for a process p_num with one of its color
 	factor Fc'''
 	prob = p.proba(A, B, rs, pt, y, alpha_s, Fc, m,q0=q,z=z)
@@ -248,10 +312,10 @@ def Integrand(y,pt,p_num,Fc,z,q):
 	P = lambda nu,xi,nu_min: p.p_tilde_u(np.exp(nu),chi(xi),Fc,alpha=alpha_s)/(1-np.exp(-1*g_FCEL(np.exp(nu_min),xi)))
 	jacobian = lambda nu,xi: np.exp(nu)*pow(sigma_hat(xi)*np.exp(nu)+1,-1*sign(Fc))
 	delta = lambda nu,xi: np.log(1+sigma_hat(xi)*np.exp(nu))
-	dsigma = lambda nu,xi: cross_section(y+sign(Fc)*delta(nu,xi),pt,p_num)		# if FCEL: y+delta ; if FCEG: y-delta
+	dsigma = lambda nu,xi: cross_section(y+sign(Fc)*delta(nu,xi),pt,p_num,coll)		# if FCEL: y+delta ; if FCEG: y-delta
 	return lambda nu,xi,nu_min:jacobian(nu,xi)*P(nu,xi,nu_min)*dsigma(nu,xi)
 
-def Integration_xi_fixed(y,pt,p_num,Fc,xi,z,q,eps=10**(-10)):
+def Integration_xi_fixed(y,pt,p_num,Fc,xi,z,q,coll = 'pp',eps=10**(-10)):
 	'''Integration over nu at fixed xi (bc the cross section is not xi dependant)
 	for a process p_num with one of its color factor Fc'''
 	prob = p.proba(A,B,rs,pt,y,alpha_s,Fc,m,q0=q,z=z)
@@ -264,18 +328,18 @@ def Integration_xi_fixed(y,pt,p_num,Fc,xi,z,q,eps=10**(-10)):
 		nu_min =  np.log((np.exp(delta_y_min)-1)/sigma_hat)
 	elif delta_y_min > 0:
 		nu_min = np.log(delta_y_min/sigma_hat)
-	I = Integrand(y,pt,p_num,Fc,z,q)
+	I = Integrand(y,pt,p_num,Fc,z,q,coll)
 	return quad(lambda nu:I(nu,xi,nu_min), nu_min, nu_max)
 
-def RpA_xi(y,pt,p_num,Fc,xi,z,q):
+def RpA_xi(y,pt,p_num,Fc,xi,z,q,coll='pp'):
 	'''Ratio of sigma pA over sigma pp for a process p_num with one of its
 	color factor Fc'''
-	I = Integration_xi_fixed(y,pt,p_num,Fc, xi,z,q)
+	I = Integration_xi_fixed(y,pt,p_num,Fc, xi,z,q,coll=coll)
 	sigma_pA = I[0]
-	sigma_pp = cross_section(y,pt,p_num)
+	sigma_pp = A*cross_section(y,pt,p_num,'pp')
 	return sigma_pA/sigma_pp
 
-def all_alpha_colors_xi(Y,pt,p_num,xi,z,q):
+def all_alpha_colors_xi(Y,pt,p_num,xi,z,q,coll='pp'):
 	'''Ratios of sigma pA over sigma pp for all color representation of the
 	process p_num at a fixed xi'''
 	alpha = process[p_num]
@@ -294,26 +358,26 @@ def all_alpha_colors_xi(Y,pt,p_num,xi,z,q):
 				R.append(1.)
 		else:
 			for y in Y:
-				R.append(RpA_xi(y,pt,p_num,fc,xi,z,q))
+				R.append(RpA_xi(y,pt,p_num,fc,xi,z,q,coll=coll))
 		R = np.array(R)															# To do basic array operations
 		Result[c]=R
 		R_tot = R_tot+rho*R
 	Result['tot'] = R_tot
 	return Result
 
-def R_frag_alpha(Y,pt,p_num,z,q,xi):
+def R_frag_alpha(Y,pt,p_num,z,q,xi,coll='pp'):
 	'''Return the RpA for a given process p_num'''
-	R = all_alpha_colors_xi(Y,pt,p_num,xi, z,q)
+	R = all_alpha_colors_xi(Y,pt,p_num,xi, z,q,coll=coll)
 	R_tot = R['tot']
 	return R_tot
 
-def R_frag(Y,pt,z,q,xi,plot = False):
+def R_frag(Y,pt,z,q,xi,coll='pp',plot = False):
 	'''Return the RpA of all fragmentation processes'''
 	keys = list(process.keys())
 	R = np.zeros_like(Y)
 	for p_num in keys:
 		f = f_alpha_pt(pt)[p_num]
-		R_alpha = R_frag_alpha(Y,pt, p_num, z, q, xi,)
+		R_alpha = R_frag_alpha(Y,pt, p_num, z, q, xi,coll=coll)
 		if plot and (p_num in p_num_plot_list):
 			plt.plot(Y,R_alpha,label=p_num_to_process[p_num])
 		R = R+f(Y)*R_alpha
@@ -321,15 +385,15 @@ def R_frag(Y,pt,z,q,xi,plot = False):
 
 # here fo the uncertainty functions
 
-def R_frag_uncertainties(Y,pt,z,q,xi):
+def R_frag_uncertainties(Y,pt,z,q,xi,coll='pp'):
 	'''Return the RpA of all fragmentation processes (i=0) 
 	with z,xi uncertainties (i=1,2) 
 	and then z,q,xi uncertainties (i=3,4)
 	with z, q, xi  should be lists of [v0,v-,v+]'''
-	R_cen = R_frag(Y,pt,z[0],q[0],xi[0])
-	R_Z = [R_cen,R_frag(Y,pt,z[1],q[0],xi[0]),R_frag(Y,pt,z[2],q[0],xi[0])]
-	R_xi = [R_cen,R_frag(Y,pt,z[0],q[0],xi[1]),R_frag(Y,pt,z[0],q[0],xi[2])]
-	R_q = [R_cen,R_frag(Y,pt,z[0],q[1],xi[0]),R_frag(Y,pt,z[0],q[2],xi[0])]
+	R_cen = R_frag(Y,pt,z[0],q[0],xi[0],coll=coll)
+	R_Z = [R_cen,R_frag(Y,pt,z[1],q[0],xi[0],coll=coll),R_frag(Y,pt,z[2],q[0],xi[0],coll=coll)]
+	R_xi = [R_cen,R_frag(Y,pt,z[0],q[0],xi[1],coll=coll),R_frag(Y,pt,z[0],q[0],xi[2],coll=coll)]
+	R_q = [R_cen,R_frag(Y,pt,z[0],q[1],xi[0],coll=coll),R_frag(Y,pt,z[0],q[2],xi[0],coll=coll)]
 	U_Z = min_max(R_Z)
 	U_xi = min_max(R_xi)
 	U_q = min_max(R_q)
@@ -341,16 +405,27 @@ def R_frag_uncertainties(Y,pt,z,q,xi):
 
 # here do the tot RpA with dir photons
 
-def RpA_dir_uncertainties(pt):
+def RpA_dir_uncertainties(pt,coll='pp'):
 	x_T = 2*pt/rs
 	'''Return the R_pA for direct photons from the sigma.py file'''
-	f_name = proton+'_RpA_'+str(rs)+'GeV_Z'+str(Z)+'_A'+str(A)+'_'+str(pt)+'GeV.txt'
+	if coll == 'pp':
+		f_name = proton+'_RpA_'+str(rs)+'GeV_Z'+str(Z)+'_A'+str(A)+'_'+str(pt)+'GeV.txt'
+	elif coll == 'pA':
+		f_name = proton+'_True_RpA_'+str(rs)+'GeV_Z'+str(Z)+'_A'+str(A)+'_'+str(pt)+'GeV.txt'
+	elif coll == 'pn':
+		raise ValueError(f"coll = {coll} does't have a function for direct RpA yet")
+	else:
+		raise ValueError(f"coll = {coll} is not a valid argument, try coll = 'pp', 'pn' or 'pA' .")
+	
 	if os.path.exists(os.path.join(RpA_dir,f_name)):
 		print(f"The file '{f_name}' already exists. It is loaded.")
 		Y,Rpa,Rpa_plus,Rpa_minus,Rpa_plus_q,Rpa_minus_q,Rpa_plus_mu,Rpa_minus_mu,Rpa_plus_pdf,Rpa_minus_pdf = np.loadtxt(os.path.join(RpA_dir,f_name))
 	else:
 		print("The file does not exists")
-		Y,Rpa ,err_Rpa, err_var_Rpa = pPb_cross_section.Uncertainties_RpA_dy(x_T)
+		if coll == 'pp':
+			Y,Rpa ,err_Rpa, err_var_Rpa = pPb_cross_section.Uncertainties_RpA_dy(x_T)
+		elif coll == 'pA':
+			Y,Rpa ,err_Rpa, err_var_Rpa = pPb_cross_section.Uncertainties_True_RpA_dy(x_T)
 		Rpa_plus,Rpa_minus = err_Rpa[0],err_Rpa[1]
 		Rpa_plus_q,Rpa_minus_q,Rpa_plus_mu,Rpa_minus_mu,Rpa_plus_pdf,Rpa_minus_pdf= err_var_Rpa[0],err_var_Rpa[1],err_var_Rpa[2],err_var_Rpa[3],err_var_Rpa[4],err_var_Rpa[5]
 		r = [Y,Rpa,Rpa_plus,Rpa_minus,Rpa_plus_q,Rpa_minus_q,Rpa_plus_mu,Rpa_minus_mu,Rpa_plus_pdf,Rpa_minus_pdf]
@@ -368,16 +443,16 @@ def RpA_dir_uncertainties(pt):
 	}
 	return R_dict
 
-def RpA_tot(pt,z_i=0,q_i=0,xi_i=0):
+def RpA_tot(pt,z_i=0,q_i=0,xi_i=0,coll='pp'):
 	'''Return the total R_pA = f_dir*R_pA_dir + (1-f_dir)*R_pA_frag with given:
 	- Y a list of rapidities (corresponding to the range of frag fits)
 	- pt the trnsverse momentum (available in p_T_dispo)
 	- z the fragmentation momentum ratio
 	- q the transport coefficient
 	- xi the parton fraction p+_3/p+_1 = -\hat{u}/\hat{s}'''
-	R_dict = RpA_dir_uncertainties(pt)
+	R_dict = RpA_dir_uncertainties(pt,coll=coll)
 	Y = R_dict['Y']
-	Rpa_frag = R_frag(Y,pt, z[z_i], q[q_i], xi[xi_i])
+	Rpa_frag = R_frag(Y,pt, z[z_i], q[q_i], xi[xi_i],coll=coll)
 	Rpa_dir = R_dict['R']['cen']
 	if q_i == 0:
 		Rpa_dir_q = Rpa_dir
@@ -389,7 +464,7 @@ def RpA_tot(pt,z_i=0,q_i=0,xi_i=0):
 	R_tot = f*Rpa_dir_q+(1-f)*Rpa_frag
 	return R_tot
 
-def RpA_tot_uncertainties(pt,z,q,xi):
+def RpA_tot_uncertainties(pt,z,q,xi,coll='pp'):
 	'''Return the total R_pA = f_dir*R_pA_dir + (1-f_dir)*R_pA_frag and its uncertainties with given:
 	- pt the trnsverse momentum (available in p_T_dispo)
 	- z the fragmentation momentum ratio (list)
@@ -400,13 +475,21 @@ def RpA_tot_uncertainties(pt,z,q,xi):
 	- i = 1,2,3: R_tot, R_tot_minus, R_tot_plus
 	- i = 4,5,6: R_dir, R_dir_minus, R_dir_plus
 	- i = 7,8,9: R_frag, R_frag_min, R_frag_max'''
-	file_name = 'RpA_tot_dir_onef_pt'+str(pt)+'_rs'+str(rs)+'_A'+str(A)+'_Z'+str(Z)+'.txt'
+	if coll == 'pp':
+		file_name = proton+'_RpA_tot_dir_onef_pt'+str(pt)+'_rs'+str(rs)+'_A'+str(A)+'_Z'+str(Z)+'.txt'
+	elif coll == 'pA':
+		file_name = proton+'_True_RpA_tot_dir_onef_pt'+str(pt)+'_rs'+str(rs)+'_A'+str(A)+'_Z'+str(Z)+'.txt'
+	elif coll == 'pn':
+		raise ValueError(f"coll = {coll} is not computed yet.")
+	else:
+		raise ValueError(f"coll = {coll} is not a valid argument, try coll= 'pp','pn' or 'pA'.")
+	
 	if os.path.exists(os.path.join(data_dir,file_name)):
 		print(f"The file '{file_name}' already exists. It is loaded.")
 		r = np.loadtxt(os.path.join(data_dir,file_name))
 	else:
 		print("The file does not exists")
-		R_dict = RpA_dir_uncertainties(pt)
+		R_dict = RpA_dir_uncertainties(pt,coll=coll)
 		#R_dir
 		Y = R_dict['Y']
 		R_dir , U_dir_minus, U_dir_plus= R_dict['R']['err']
@@ -416,14 +499,14 @@ def RpA_tot_uncertainties(pt,z,q,xi):
 		R_pdf = R_dict['R']['pdf']
 		U_pdf_min , U_pdf_max = R_pdf[1], R_pdf[2]
 		#R_frag
-		R_frag_unc = R_frag_uncertainties(Y,pt, z, q, xi)
+		R_frag_unc = R_frag_uncertainties(Y,pt, z, q, xi,coll=coll)
 		R_frag = R_frag_unc[0]
 		D_all_min, D_all_max = R_frag_unc[1],R_frag_unc[2]
 		R_frag_minus, R_frag_plus = R_frag_unc[3], R_frag_unc[4]
 		#R_tot
 		f = f_dir_pt(pt)(Y)
 		R_cen = f*R_dir + (1-f)*R_frag
-		R_tot_q_minus, R_tot_q_plus = RpA_tot(pt,q_i=1), RpA_tot(pt,q_i=2)
+		R_tot_q_minus, R_tot_q_plus = RpA_tot(pt,q_i=1,coll=coll), RpA_tot(pt,q_i=2,coll=coll)
 		R_q = [R_cen,R_tot_q_minus, R_tot_q_plus]
 		U_q = min_max(R_q)
 		U_q_min , U_q_max = R_cen-U_q[0], U_q[1]-R_cen
