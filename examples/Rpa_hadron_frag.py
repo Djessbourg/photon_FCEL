@@ -35,6 +35,7 @@ min_max = sig.min_max 															# to compute the min and max of a set of da
 rs = 200
 s = float((rs)**2) # CM energy in Gev^2
 # p_T_dispo = [3,5,10,15]
+# p_T_dispo = [5]
 p_T_dispo = [2,4,6]
 
 Atom = sig.Atom
@@ -65,6 +66,7 @@ q = [0.07,0.05,0.09]
 xi = [0.5,0.25,0.75]
 
 # plot variables
+fig_size = (5,5)
 alph = 0.3
 f_size = 17
 tot_color, dir_color , frag_color = 'blue' , 'green' , 'orange'
@@ -246,17 +248,20 @@ for pt in p_T_dispo:
 		max_y = sig.Z_to_ylim[Z]
 		min_y = -1*max_y
 		lil_Y = np.linspace(min_y, max_y,31)
-		smooth2 = make_smoothing_spline(lil_Y, smooth(lil_Y))
-		Processus[p_num] = A*smooth2							# *A to normalise with the denominator A*sigma_pp for every collisions
+		smooth2 = make_smoothing_spline(lil_Y, A*smooth(lil_Y))
+		smooth2_pA = make_smoothing_spline(lil_Y, smooth(lil_Y))
+		Processus[p_num] = smooth2							# *A to normalise with the denominator A*sigma_pp for every collisions
 
 		n_file = uproot.open(os.path.join(n_pawres_dir,fn))
 		n_histo = n_file[fname]
 		n_Values = n_histo.values()
 		n_smooth = make_smoothing_spline(rapidity,n_Values)
-		n_smooth2 = make_smoothing_spline(lil_Y, n_smooth(lil_Y))
-		n_Processus[p_num] = A*n_smooth2
+		n_smooth2 = make_smoothing_spline(lil_Y, A*n_smooth(lil_Y))
+		n_smooth2_pA = make_smoothing_spline(lil_Y, n_smooth(lil_Y))
+		n_Processus[p_num] = n_smooth2
 
-		pA_Processus[p_num] = Z*smooth2+(A-Z)*n_smooth2
+		pA_smooth2 = make_smoothing_spline(lil_Y, Z*smooth2_pA(lil_Y)+(A-Z)*n_smooth2_pA(lil_Y))
+		pA_Processus[p_num] = pA_smooth2
 
 
 	Processes[pt]=Processus
@@ -282,7 +287,7 @@ def Processus_pt(pt,coll = 'pp'):
 		raise ValueError(f"{coll} is not a valid argument. Try 'pp','pn' or 'pA' ")
 
 def cross_section(y,pt,p_num,coll='pp'):
-	return Processus_pt(pt,coll)[p_num](y)
+	return Processus_pt(pt,coll=coll)[p_num](y)
 
 def sign(a):
 	'''Gives back the sign of a real number a'''
@@ -312,7 +317,7 @@ def Integrand(y,pt,p_num,Fc,z,q,coll = 'pp'):
 	P = lambda nu,xi,nu_min: p.p_tilde_u(np.exp(nu),chi(xi),Fc,alpha=alpha_s)/(1-np.exp(-1*g_FCEL(np.exp(nu_min),xi)))
 	jacobian = lambda nu,xi: np.exp(nu)*pow(sigma_hat(xi)*np.exp(nu)+1,-1*sign(Fc))
 	delta = lambda nu,xi: np.log(1+sigma_hat(xi)*np.exp(nu))
-	dsigma = lambda nu,xi: cross_section(y+sign(Fc)*delta(nu,xi),pt,p_num,coll)		# if FCEL: y+delta ; if FCEG: y-delta
+	dsigma = lambda nu,xi: cross_section(y+sign(Fc)*delta(nu,xi),pt,p_num,coll=coll)		# if FCEL: y+delta ; if FCEG: y-delta
 	return lambda nu,xi,nu_min:jacobian(nu,xi)*P(nu,xi,nu_min)*dsigma(nu,xi)
 
 def Integration_xi_fixed(y,pt,p_num,Fc,xi,z,q,coll = 'pp',eps=10**(-10)):
@@ -328,7 +333,7 @@ def Integration_xi_fixed(y,pt,p_num,Fc,xi,z,q,coll = 'pp',eps=10**(-10)):
 		nu_min =  np.log((np.exp(delta_y_min)-1)/sigma_hat)
 	elif delta_y_min > 0:
 		nu_min = np.log(delta_y_min/sigma_hat)
-	I = Integrand(y,pt,p_num,Fc,z,q,coll)
+	I = Integrand(y,pt,p_num,Fc,z,q,coll=coll)
 	return quad(lambda nu:I(nu,xi,nu_min), nu_min, nu_max)
 
 def RpA_xi(y,pt,p_num,Fc,xi,z,q,coll='pp'):
@@ -336,7 +341,7 @@ def RpA_xi(y,pt,p_num,Fc,xi,z,q,coll='pp'):
 	color factor Fc'''
 	I = Integration_xi_fixed(y,pt,p_num,Fc, xi,z,q,coll=coll)
 	sigma_pA = I[0]
-	sigma_pp = A*cross_section(y,pt,p_num,'pp')
+	sigma_pp = cross_section(y,pt,p_num,'pp')
 	return sigma_pA/sigma_pp
 
 def all_alpha_colors_xi(Y,pt,p_num,xi,z,q,coll='pp'):
@@ -609,7 +614,7 @@ def plot_f_alpha(Y,pt,L,C,n=2):
 	plt.savefig(os.path.join(plots_dir,n_fig),bbox_inches="tight")# bbox_inches="tight"
 	plt.show()
 
-def pt_plots(y_list,z,q,xi):
+def pt_plots(y_list,z,q,xi,coll='pp'):
 	'''Y a vector of rapidities and y_list some rapidities inside it'''
 	a=0
 	b=0
@@ -618,7 +623,7 @@ def pt_plots(y_list,z,q,xi):
 		R_dir , R_dir_minus, R_dir_plus = [],[],[]
 		R_frag, R_frag_minus, R_frag_plus = [],[],[]
 		for pt in p_T_dispo:													# Supposing that the coputation is already done, otherwise there will be a lot of calculation
-			r = RpA_tot_uncertainties(pt ,z, q, xi)
+			r = RpA_tot_uncertainties(pt ,z, q, xi,coll=coll)
 			Y = r[0]
 			Yr = np.round(Y,1)
 			if not(y in Yr):
@@ -631,50 +636,58 @@ def pt_plots(y_list,z,q,xi):
 				R_tot.append(r_tot[i][0]);R_tot_minus.append(r_tot_minus[i][0]);R_tot_plus.append(r_tot_plus[i][0])
 				R_dir.append(r_dir[i][0]);R_dir_minus.append(r_dir_minus[i][0]);R_dir_plus.append(r_dir_plus[i][0])
 				R_frag.append(r_frag[i][0]);R_frag_minus.append(r_frag_minus[i][0]);R_frag_plus.append(r_frag_plus[i][0])
-		fig, ax = plt.subplots(constrained_layout=True)
+		if coll == 'pp':
+			n_fig = proton+'Rpp_tot_dir_frag_y'+str(y)+'_rs'+str(rs)+'_A'+str(A)+'_Z'+str(Z)+'.pdf'
+			n_fig_2 = proton+'Rpp_tot_vs_dir_y'+str(y)+'_rs'+str(rs)+'_A'+str(A)+'_Z'+str(Z)+'.pdf'
+		if coll == 'pA':
+			n_fig = proton+'RpA_tot_dir_frag_y'+str(y)+'_rs'+str(rs)+'_A'+str(A)+'_Z'+str(Z)+'.pdf'
+			n_fig_2 = proton+'RpA_tot_vs_dir_y'+str(y)+'_rs'+str(rs)+'_A'+str(A)+'_Z'+str(Z)+'.pdf'
+		# fig, ax = plt.subplots(constrained_layout=True)
+		# ax.xaxis.set_minor_locator(MultipleLocator(1))
+		# ax.xaxis.set_major_locator(MultipleLocator(1))
+		# # ax.xaxis.set_major_locator(MultipleLocator(5))
+		# plt.axhline(y=1, color='grey', alpha=alph)
+		# plt.plot(p_T_dispo,R_dir,color = dir_color, label = r'$R_{\text{pA}}^{\text{dir}}$')
+		# plt.plot(p_T_dispo,R_frag,color = frag_color,label = r'$R_{\text{pA}}^{\text{frag}}$')
+		# plt.plot(p_T_dispo,R_tot,color = tot_color,label = r'$R_{\text{pA}}^{\text{tot}}$')
+		# plt.fill_between(p_T_dispo, R_tot_minus, R_tot_plus, color=tot_color, alpha=alph)
+		# plt.fill_between(p_T_dispo, R_dir_minus, R_dir_plus, color=dir_color, alpha=alph)
+		# plt.fill_between(p_T_dispo, R_frag_minus, R_frag_plus, color=frag_color, alpha=alph)
+		# plt.ylim(0.8,1.1)
+		# # plt.xlim(p_T_lim)
+		# plot_usuals(s1=f_size-b,s2=f_size-a,n=2,loca='lower left')
+		# plt.xlabel(r'$p_\bot$ (GeV)',fontsize=f_size-a)
+		# plt.ylabel(r'$R_{\text{pA}}$',fontsize=f_size-a)
+		# plt.text(0.75, 0.9,r'$y =$ '+str(int(np.round(y))),horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b)
+		# plt.text(0.1, 0.9, r'p'+atom, horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize=f_size-a)
+		# plt.text(0.75, 0.8,r'$\sqrt{s} =$ '+str(rs)+' GeV',horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b)
+		# # plt.text(0.75, 0.8,r'$\sqrt{s} =$ '+str(rs/1000)+' TeV',horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b)
+		# n_fig = proton+'tot_dir_frag_Npt'+str(len(p_T_dispo))+'_y'+str(y)+'_rs'+str(rs)+'_A'+str(A)+'_Z'+str(Z)+'.pdf'
+		# ax.set_aspect(1.0/ax.get_data_ratio(), adjustable='box')
+		# plt.savefig(os.path.join(plots_dir,n_fig),bbox_inches="tight")# bbox_inches="tight"
+		# plt.show()
+		fig, ax = plt.subplots(constrained_layout=True,figsize=fig_size)
 		ax.xaxis.set_minor_locator(MultipleLocator(1))
+		# ax.xaxis.set_major_locator(MultipleLocator(5))
 		ax.xaxis.set_major_locator(MultipleLocator(1))
+		ax.yaxis.set_minor_locator(MultipleLocator(0.05))
+		ax.yaxis.set_major_locator(MultipleLocator(0.1))
 		# ax.xaxis.set_major_locator(MultipleLocator(5))
 		plt.axhline(y=1, color='grey', alpha=alph)
-		plt.plot(p_T_dispo,R_dir,color = dir_color, label = r'$R_{\text{pA}}^{\text{dir}}$')
-		plt.plot(p_T_dispo,R_frag,color = frag_color,label = r'$R_{\text{pA}}^{\text{frag}}$')
+		plt.plot(p_T_dispo,R_dir,linestyle='--',color = dir_color, label = r'$R_{\text{pA}}^{\text{dir}}$')
 		plt.plot(p_T_dispo,R_tot,color = tot_color,label = r'$R_{\text{pA}}^{\text{tot}}$')
 		plt.fill_between(p_T_dispo, R_tot_minus, R_tot_plus, color=tot_color, alpha=alph)
-		plt.fill_between(p_T_dispo, R_dir_minus, R_dir_plus, color=dir_color, alpha=alph)
-		plt.fill_between(p_T_dispo, R_frag_minus, R_frag_plus, color=frag_color, alpha=alph)
-		plt.ylim(0.8,1.1)
+		plt.ylim(0.85,1.05)
 		# plt.xlim(p_T_lim)
-		plot_usuals(s1=f_size-b,s2=f_size-a,n=2,loca='lower left')
+		plot_usuals(s1=f_size-b,s2=f_size-a,loca='lower right')
 		plt.xlabel(r'$p_\bot$ (GeV)',fontsize=f_size-a)
 		plt.ylabel(r'$R_{\text{pA}}$',fontsize=f_size-a)
-		plt.text(0.75, 0.9,r'$y =$ '+str(int(np.round(y))),horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b)
-		plt.text(0.1, 0.9, r'p'+atom, horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize=f_size-a)
-		plt.text(0.75, 0.8,r'$\sqrt{s} =$ '+str(rs)+' GeV',horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b)
-		# plt.text(0.75, 0.8,r'$\sqrt{s} =$ '+str(rs/1000)+' TeV',horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b)
-		n_fig = proton+'tot_dir_frag_Npt'+str(len(p_T_dispo))+'_y'+str(y)+'_rs'+str(rs)+'_A'+str(A)+'_Z'+str(Z)+'.pdf'
+		plt.text(0.1, 0.8,r'$y =$ '+str(int(np.round(y))),horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b)
+		plt.text(0.8, 0.9, r'p'+atom, horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize=f_size-a)
+		plt.text(0.1, 0.9,r'$\sqrt{s} =$ '+str(rs)+' GeV',horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b)
+		# plt.text(0.1, 0.9,r'$\sqrt{s} =$ '+str(rs/1000)+' TeV',horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b)
 		ax.set_aspect(1.0/ax.get_data_ratio(), adjustable='box')
-		plt.savefig(os.path.join(plots_dir,n_fig),bbox_inches="tight")# bbox_inches="tight"
-		plt.show()
-		fig, ax = plt.subplots(constrained_layout=True)
-		ax.xaxis.set_minor_locator(MultipleLocator(1))
-		ax.xaxis.set_major_locator(MultipleLocator(1))
-		# ax.xaxis.set_major_locator(MultipleLocator(5))
-		plt.axhline(y=1, color='grey', alpha=alph)
-		plt.plot(p_T_dispo,R_dir,color = dir_color, label = r'$R_{\text{pA}}^{\text{dir}}$')
-		plt.plot(p_T_dispo,R_tot,color = tot_color,label = r'$R_{\text{pA}}^{\text{tot}}$')
-		plt.fill_between(p_T_dispo, R_tot_minus, R_tot_plus, color=tot_color, alpha=alph)
-		plt.ylim(0.8,1.1)
-		# plt.xlim(p_T_lim)
-		plot_usuals(s1=f_size-b,s2=f_size-a,loca='lower left')
-		plt.xlabel(r'$p_\bot$ (GeV)',fontsize=f_size-a)
-		plt.ylabel(r'$R_{\text{pA}}$',fontsize=f_size-a)
-		plt.text(0.75, 0.9,r'$y =$ '+str(int(np.round(y))),horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b)
-		plt.text(0.1, 0.9, r'p'+atom, horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize=f_size-a)
-		plt.text(0.75, 0.8,r'$\sqrt{s} =$ '+str(rs)+' GeV',horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b)
-		# plt.text(0.75, 0.8,r'$\sqrt{s} =$ '+str(rs/1000)+' TeV',horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b)
-		n_fig = proton+'tot_dir_Npt'+str(len(p_T_dispo))+'_y'+str(y)+'_rs'+str(rs)+'_A'+str(A)+'_Z'+str(Z)+'.pdf'
-		ax.set_aspect(1.0/ax.get_data_ratio(), adjustable='box')
-		plt.savefig(os.path.join(plots_dir,n_fig),bbox_inches="tight")# bbox_inches="tight"
+		plt.savefig(os.path.join(plots_dir,n_fig_2),bbox_inches="tight")# bbox_inches="tight"
 		plt.show()
 
 def plot_mains(Y,pt,z,q,xi):
@@ -698,6 +711,10 @@ def plot_mains(Y,pt,z,q,xi):
 		keys = list(R_alpha.keys())
 		fig, ax = plt.subplots(constrained_layout=True)
 		ax.xaxis.set_minor_locator(MultipleLocator(1))
+		ax.xaxis.set_major_locator(MultipleLocator(5))
+		# ax.xaxis.set_major_locator(MultipleLocator(1))
+		ax.yaxis.set_minor_locator(MultipleLocator(0.05))
+		ax.yaxis.set_major_locator(MultipleLocator(0.1))
 		for color in keys:
 			if color == 'tot':
 				plt.plot(Y2,R_alpha[color],linestyle='--',color = 'red',label = color)
@@ -712,56 +729,69 @@ def plot_mains(Y,pt,z,q,xi):
 		plt.savefig(os.path.join(plots_dir,n_fig),bbox_inches="tight")
 		plt.show()
  
-def all_plots(pt,z,q,xi):
+def all_plots(pt,z,q,xi,coll='pp'):
 	a=0
 	b=0
-	r = RpA_tot_uncertainties(pt, z, q, xi)
+	r = RpA_tot_uncertainties(pt, z, q, xi,coll=coll)
 	Y = r[0]
 	r_tot , r_tot_minus, r_tot_plus = r[1:4]
 	r_dir , r_dir_minus, r_dir_plus = r[4:7]
 	r_frag, r_frag_minus, r_frag_plus = r[7:]
 	# first plot comparing R_frag, R_dir and R_tot, with all uncertainties
-	fig, ax = plt.subplots(constrained_layout=True)
-	ax.xaxis.set_minor_locator(MultipleLocator(1))
-	plt.axhline(y=1, color='grey', alpha=alph)
-	plt.plot(Y,r_dir,color = dir_color, label = r'$R_{\text{pA}}^{\text{dir}}$')
-	plt.plot(Y,r_frag,color = frag_color,label = r'$R_{\text{pA}}^{\text{frag}}$')
-	plt.plot(Y,r_tot,color = tot_color,label = r'$R_{\text{pA}}^{\text{tot}}$')
-	plt.fill_between(Y, r_tot_minus, r_tot_plus, color=tot_color, alpha=alph)
-	plt.fill_between(Y, r_dir_minus, r_dir_plus, color=dir_color, alpha=alph)
-	plt.fill_between(Y, r_frag_minus, r_frag_plus, color=frag_color, alpha=alph)
-	plot_usuals(n=2,s1=f_size-b,s2=f_size-a,loca = 'lower right')
-	plt.ylim(0.8,1.1)
-	plt.xlim(y_lim)
-	plt.xlabel('y',fontsize=f_size-a)
-	plt.ylabel(r'$R_{\text{pA}}$', fontsize=f_size-a)
-	plt.text(0.1, 0.9, r'p'+atom, horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize=f_size-a)
-	plt.text(0.75, 0.9,r'$p_\bot =$ '+str(pt)+' GeV',horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b) #bbox=dict(boxstyle="round,pad=0.3", facecolor='gray', alpha=alph)
-	plt.text(0.75, 0.8,r'$\sqrt{s} =$ '+str(rs)+' GeV',horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b)
-	# plt.text(0.75, 0.8,r'$\sqrt{s} =$ '+str(rs/1000)+' TeV',horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b)
-	ax.set_aspect(1.0/ax.get_data_ratio(), adjustable='box')
-	n_fig = proton+'tot_dir_frag_pt'+str(pt)+'_rs'+str(rs)+'_A'+str(A)+'_Z'+str(Z)+'.pdf'
-	plt.savefig(os.path.join(plots_dir,n_fig),bbox_inches="tight")
-	plt.show()
+	# fig, ax = plt.subplots(constrained_layout=True,figsize=fig_size)
+	# ax.xaxis.set_minor_locator(MultipleLocator(1))
+	# ax.xaxis.set_major_locator(MultipleLocator(2))
+	# ax.yaxis.set_minor_locator(MultipleLocator(0.05))
+	# ax.yaxis.set_major_locator(MultipleLocator(0.1))
+	# plt.axhline(y=1, color='grey', alpha=alph)
+	if coll == 'pp':
+		# plt.plot(Y,r_dir,color = dir_color, label = r'$R_{\text{pp}}^{\text{dir}}$')
+		# plt.plot(Y,r_frag,color = frag_color,label = r'$R_{\text{pp}}^{\text{frag}}$')
+		# plt.plot(Y,r_tot,color = tot_color,label = r'$R_{\text{pp}}^{\text{tot}}$')
+		n_fig = proton+'Rpp_tot_dir_frag_pt'+str(pt)+'_rs'+str(rs)+'_A'+str(A)+'_Z'+str(Z)+'.pdf'
+		n_fig_2 = proton+'Rpp_tot_vs_dir_pt'+str(pt)+'_rs'+str(rs)+'_A'+str(A)+'_Z'+str(Z)+'.pdf'
+	if coll == 'pA':
+		# plt.plot(Y,r_dir,color = dir_color, label = r'$R_{\text{pA}}^{\text{dir}}$')
+		# plt.plot(Y,r_frag,color = frag_color,label = r'$R_{\text{pA}}^{\text{frag}}$')
+		# plt.plot(Y,r_tot,color = tot_color,label = r'$R_{\text{pA}}^{\text{tot}}$')
+		n_fig = proton+'RpA_tot_dir_frag_pt'+str(pt)+'_rs'+str(rs)+'_A'+str(A)+'_Z'+str(Z)+'.pdf'
+		n_fig_2 = proton+'RpA_tot_vs_dir_pt'+str(pt)+'_rs'+str(rs)+'_A'+str(A)+'_Z'+str(Z)+'.pdf'
+	# plt.fill_between(Y, r_tot_minus, r_tot_plus, color=tot_color, alpha=alph)
+	# plt.fill_between(Y, r_dir_minus, r_dir_plus, color=dir_color, alpha=alph)
+	# # plt.fill_between(Y, r_frag_minus, r_frag_plus, color=frag_color, alpha=alph)
+	# plot_usuals(n=2,s1=f_size-b,s2=f_size-a,loca = 'lower right')
+	# plt.ylim(0.7,1.1)
+	# plt.xlim(y_lim)
+	# plt.xlabel('y',fontsize=f_size-a)
+	# plt.ylabel(r'$R_{\text{pA}}$', fontsize=f_size-a)
+	# plt.text(0.8, 0.9, r'p'+atom, horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize=f_size-a)
+	# plt.text(0.1, 0.8,r'$p_\bot =$ '+str(pt)+' GeV',horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b) #bbox=dict(boxstyle="round,pad=0.3", facecolor='gray', alpha=alph)
+	# # plt.text(0.1, 0.8,r'$\sqrt{s} =$ '+str(rs)+' GeV',horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b)
+	# plt.text(0.1, 0.9,r'$\sqrt{s} =$ '+str(rs/1000)+' TeV',horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b)
+	# ax.set_aspect(1.0/ax.get_data_ratio(), adjustable='box')
+	# plt.savefig(os.path.join(plots_dir,n_fig),bbox_inches="tight")
+	# plt.show()
 	# RpA_tot unc only + dir in dash
-	fig, ax = plt.subplots(constrained_layout=True)
+	fig, ax = plt.subplots(constrained_layout=True,figsize=fig_size)
 	ax.xaxis.set_minor_locator(MultipleLocator(1))
+	ax.xaxis.set_major_locator(MultipleLocator(2))
+	ax.yaxis.set_minor_locator(MultipleLocator(0.05))
+	ax.yaxis.set_major_locator(MultipleLocator(0.1))
 	plt.axhline(y=1, color='grey', alpha=alph)
 	plt.plot(Y,r_dir,color= dir_color,linestyle='--',label= r'$R_{\text{pA}}^{\text{dir}}$')
 	plt.plot(Y,r_tot,color = tot_color,label = r'$R_{\text{pA}}^{\text{tot}}$')
 	plt.fill_between(Y, r_tot_minus, r_tot_plus,color=tot_color,alpha=alph)
-	plot_usuals(s1=f_size-b,s2=f_size-a,loca = 'lower left')
-	plt.ylim(0.8,1.1)
+	plot_usuals(s1=f_size-b,s2=f_size-a,loca = 'lower right')
+	plt.ylim(0.7,1.1)
 	plt.xlim(y_lim)
 	plt.xlabel('y',fontsize=f_size-a)
 	plt.ylabel(r'$R_{\text{pA}}$',fontsize=f_size-a)
-	plt.text(0.1, 0.9, r'p'+atom, horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize=f_size-a)
-	plt.text(0.75, 0.9,r'$p_\bot =$ '+str(pt)+' GeV',horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b) #bbox=dict(boxstyle="round,pad=0.3", facecolor='gray', alpha=alph)
-	plt.text(0.75, 0.8,r'$\sqrt{s} =$ '+str(rs)+' GeV',horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b)
-	# plt.text(0.75, 0.8,r'$\sqrt{s} =$ '+str(rs/1000)+' TeV',horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b)
+	plt.text(0.8, 0.9, r'p'+atom, horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize=f_size-a)
+	plt.text(0.1, 0.8,r'$p_\bot =$ '+str(pt)+' GeV',horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b) #bbox=dict(boxstyle="round,pad=0.3", facecolor='gray', alpha=alph)
+	# plt.text(0.1, 0.9,r'$\sqrt{s} =$ '+str(rs)+' GeV',horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b)
+	plt.text(0.1, 0.9,r'$\sqrt{s} =$ '+str(rs/1000)+' TeV',horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b)
 	ax.set_aspect(1.0/ax.get_data_ratio(), adjustable='box')
-	n_fig = proton+'tot_vs_dir_pt'+str(pt)+'_rs'+str(rs)+'_A'+str(A)+'_Z'+str(Z)+'.pdf'
-	plt.savefig(os.path.join(plots_dir,n_fig),bbox_inches="tight")
+	plt.savefig(os.path.join(plots_dir,n_fig_2),bbox_inches="tight")
 	plt.show()
 # 	# the frag Rpa with the main components
 # 	fig, ax = plt.subplots(constrained_layout=True)
@@ -803,10 +833,12 @@ def all_plots(pt,z,q,xi):
 # 		plt.show()
 
 
+
+coll_type = 'pA'
 pt_plots(fixed_y, z, q, xi)
 # for p_t in p_T_dispo:
 	# plot_splines(np.linspace(-6,6,100), p_t, p_num_plot_list,p_num_color_list,n=1)
 	# plot_f_alpha(np.linspace(-6,6,100), p_t, p_num_plot_list,p_num_color_list,n=2)
-	# all_plots(p_t, z, q, xi)
+	# all_plots(p_t, z, q, xi,coll=coll_type)
 # plot_mains(np.linspace(-6, 6,100),z, q, xi, n)
 # plot_sigma_spline(np.linspace(-6, 6,100),pt)
