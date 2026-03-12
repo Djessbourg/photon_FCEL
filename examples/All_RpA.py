@@ -17,8 +17,8 @@ from src import sigma as sig
 from src import Collision
 
 ### Initialisation of a sigma object ###
-rs = 8800
-# rs = 200
+# rs = 8800
+rs = 200
 s = (rs)**2 # CM energy in Gev2
 # proton = "nNNPDF30_nlo_as_0118_p"
 # proton = "NNPDF40_lo_as_01180"
@@ -30,8 +30,8 @@ proton = "NNPDF40_nlo_as_01180"
 
 Pb = "nNNPDF30_nlo_as_0118_A208_Z82"
 
-atom = 'Pb'
-# atom = 'Au'
+# atom = 'Pb'
+atom = 'Au'
 
 # y_abs = 6 # for Pb
 # y_abs = 4.5 # for Au
@@ -46,14 +46,15 @@ pPb_cross_section = sig.Sigma(proton,Pb,s,Z,A)
 d = sig.Switch
 
 ### first atempts to reproduce last results ###
-p_T = 5 #GeV
-# p_T = 2
+# p_T = 5 #GeV
+p_T = 2
 x_T = (2.0*p_T)/rs
 num = 0																			# The central set 
 Y = sig.Y_list(x_T,Z)														
 
 # A plot for sigma tot and its components
 f_size = 17
+fig_size=(5,5)
 alph = 0.3
 q0 =0.07
 convention = 'dp_t2'
@@ -69,7 +70,7 @@ def plot_usuals(n=1,s1=f_size,s2=f_size,loca = 'best'):
 	plt.tick_params(labelsize=s2)
 
 # before RpA, cross section of each process and ratios of thoses
-fig, ax = plt.subplots(constrained_layout=True)
+fig, ax = plt.subplots(constrained_layout=True,figsize=fig_size)
 ax.xaxis.set_minor_locator(MultipleLocator(1))
 ax.xaxis.set_major_locator(MultipleLocator(2))
 (s1,er1),(s2,er2),(s3,er3),(s4,er4)=pPb_cross_section.dsigma_all_dy(x_T,num,is_pp=Collision(col_type),switch=convention,l=False)
@@ -82,12 +83,15 @@ plt.plot(Y,s4,label=r'$\bar{q}q$')
 
 plt.ylabel(r'd$\sigma_{\ell}/$d$y$'+sig.Switch[convention][0]+' '+sig.Switch[convention][1],fontsize= f_size-a)
 plt.yscale('log')
-plt.ylim(10**(-1),10**5)
+# plt.ylim(5*10**1,7*10**3)
+plt.ylim(2*10**2,7*10**4)
 plt.xlabel(r'y',fontsize=f_size-a)
+# plt.xlim(-4,4)
 ax.set_aspect(1.0/ax.get_data_ratio(), adjustable='box')
 # plt.text(0.5, 0.95, proton + " p-"+atom, horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize=f_size-a)
-plt.text(0.5, 0.35, r'$p_\bot =$'+str(p_T) +r' GeV', horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize=f_size-a)
-plt.text(0.5, 0.45, r'$\sqrt{s} =$'+str(rs/1000) +r' TeV', horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize=f_size-a)
+plt.text(0.5, 0.28, r'$p_\bot =$'+str(p_T) +r' GeV', horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize=f_size-a)
+# plt.text(0.5, 0.38, r'$\sqrt{s} =$'+str(rs/1000) +r' TeV', horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize=f_size-a)
+plt.text(0.5, 0.38, r'$\sqrt{s} =$'+str(rs) +r' GeV', horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize=f_size-a)
 plot_usuals(s1=f_size-a,s2=f_size-a,loca = 'lower center',n=2)
 plt.tight_layout()
 plt.savefig(os.path.join(plots_dir, proton+'sigma_all'+str(rs)+'GeV_Z'+str(Z)+'_A'+str(A)+convention+str(p_T)+'GeV.pdf'),bbox_inches="tight")

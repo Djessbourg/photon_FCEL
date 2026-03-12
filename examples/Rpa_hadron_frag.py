@@ -31,17 +31,17 @@ min_max = sig.min_max 															# to compute the min and max of a set of da
 
 # Context data
 
-# rs = 8800
-rs = 200
+rs = 8800
+# rs = 200
 s = float((rs)**2) # CM energy in Gev^2
 # p_T_dispo = [3,5,10,15]
-# p_T_dispo = [5]
-p_T_dispo = [2,4,6]
+p_T_dispo = [5]
+# p_T_dispo = [2,4,6]
 
 Atom = sig.Atom
 
-# atom = 'Pb'
-atom = 'Au'
+atom = 'Pb'
+# atom = 'Au'
 
 Z = Atom[atom]['Z']
 A = Atom[atom]['A']
@@ -58,6 +58,7 @@ alpha_s = 0.5
 m_photon = 0
 m_pion = 0.134
 m = m_photon
+convention = 'dp_t'
 
 p_num_plot_list = ['14a','14b','1','3','15']
 p_num_color_list = ['blue','orange','green','red','purple']
@@ -113,20 +114,20 @@ process ={
 }
 
 p_num_to_process ={
-	"1":r"$qq'\rightarrow q(q'\rightarrow \gamma)$",
-	"3":r"$q\bar{q'} \rightarrow q(\bar{q'}\rightarrow \gamma)$",
-	"5":r"$qq \rightarrow q(q\rightarrow \gamma)$",
-	"7":r"$q\bar{q} \rightarrow q'(\bar{q'}\rightarrow \gamma)$",
-	"8":r"$q\bar{q} \rightarrow q(\bar{q}\rightarrow \gamma)$",
-	"9":r"$q\bar{q} \rightarrow g(g\rightarrow \gamma)$",
-	"13a":r"$q_1g_2\rightarrow q(g\rightarrow \gamma)$",
-	"13b":r"$g_1q_2\rightarrow q(g\rightarrow \gamma)$",
-	"13":r"$qg\rightarrow q(g\rightarrow \gamma)$",
-	"14a":r"$q_1g_2\rightarrow g(q\rightarrow \gamma)$",
-	"14b":r"$g_1q_2 \rightarrow g(q\rightarrow \gamma)$",
-	"14":r"$qg\rightarrow g(q\rightarrow \gamma)$",
-	"15":r"$gg\rightarrow \bar{q}(q\rightarrow \gamma)$",
-	"16":r"$gg\rightarrow g(g\rightarrow \gamma)$"
+	"1":r"$qq'\rightarrow q'(\rightarrow \gamma)q$",
+	"3":r"$q\bar{q'} \rightarrow \bar{q'}(\rightarrow \gamma)q$",
+	"5":r"$qq \rightarrow q(\rightarrow \gamma)q$",
+	"7":r"$q\bar{q} \rightarrow \bar{q'}(\rightarrow \gamma)q'$",
+	"8":r"$q\bar{q} \rightarrow \bar{q}(\rightarrow \gamma)q$",
+	"9":r"$q\bar{q} \rightarrow g(\rightarrow \gamma)g$",
+	"13a":r"$q_1g_2\rightarrow g(\rightarrow \gamma)q$",
+	"13b":r"$g_1q_2\rightarrow g(\rightarrow \gamma)q$",
+	"13":r"$qg\rightarrow g(\rightarrow \gamma)q$",
+	"14a":r"$q_1g_2\rightarrow q(\rightarrow \gamma)g$",
+	"14b":r"$g_1q_2 \rightarrow q(\rightarrow \gamma)g$",
+	"14":r"$qg\rightarrow q(\rightarrow \gamma)g$",
+	"15":r"$gg\rightarrow q(\rightarrow \gamma)\bar{q}$",
+	"16":r"$gg\rightarrow g(\rightarrow \gamma)g$"
 }
 
 # Extraction of f_alpha as functions of y for p_T = 5 GeV
@@ -384,7 +385,7 @@ def R_frag(Y,pt,z,q,xi,coll='pp',plot = False):
 		f = f_alpha_pt(pt)[p_num]
 		R_alpha = R_frag_alpha(Y,pt, p_num, z, q, xi,coll=coll)
 		if plot and (p_num in p_num_plot_list):
-			plt.plot(Y,R_alpha,label=p_num_to_process[p_num])
+			plt.plot(Y,R_alpha) #label=p_num_to_process[p_num]
 		R = R+f(Y)*R_alpha
 	return R
 
@@ -536,56 +537,56 @@ def plot_sigma_spline(Y,pt):
 		plt.title(p_num + ' = '+ p_num_to_process[p_num]+' at pt ='+str(pt))
 		plt.show()
 
-def plot_splines(Y,pt,L,C,n=2,All = True):
+def plot_splines(Y,pt,L,C,n=2,coll ='pp',All = True):
 	'''Return the plots of cross section splines in a Y array giving pt 
 	and L the list of the p_num wanted. If all == True, then all the cross sections 
 	are ploted on the same figure with n colluns for legend'''
 	a=0
-	b=0
+	b=5
 	if All:
-		fig, ax = plt.subplots(constrained_layout=True)
+		fig, ax = plt.subplots(constrained_layout=True,figsize=fig_size)
 		ax.xaxis.set_minor_locator(MultipleLocator(1))
 		for i,p_num in enumerate(L):
-			cross = np.array([cross_section(y, pt, p_num) for y in Y])
+			cross = np.array([cross_section(y, pt, p_num,coll=coll) for y in Y])
 			if (p_num =='14a') | (p_num =='14b') | (p_num =='13a')| (p_num =='13b'):
 				style = '--'
 			else:
 				style = '-'
 			plt.plot(Y,cross,label= p_num_to_process[p_num],linestyle=style,color = C[i])
 		if ('14a' in L) and ('14b' in L):
-			cross1 = np.array([cross_section(y, pt, '14a') for y in Y])
-			cross2 = np.array([cross_section(y, pt, '14b') for y in Y])
+			cross1 = np.array([cross_section(y, pt, '14a',coll=coll) for y in Y])
+			cross2 = np.array([cross_section(y, pt, '14b',coll=coll) for y in Y])
 			plt.plot(Y,cross1+cross2,label=p_num_to_process['14'] ,color='brown')
 		if ('13a' in L) and ('13b' in L):
-			cross1 = np.array([cross_section(y, pt, '13a') for y in Y])
-			cross2 = np.array([cross_section(y, pt, '13b') for y in Y])
+			cross1 = np.array([cross_section(y, pt, '13a',coll=coll) for y in Y])
+			cross2 = np.array([cross_section(y, pt, '13b',coll=coll) for y in Y])
 			plt.plot(Y,cross1+cross2,label=p_num_to_process['13'] ,color='brown') # change the color here if you want to plot both 13 and 14 process
 		plt.xlabel(r'$y$',fontsize=f_size-a)
-		plt.ylabel(r'$d\sigma/dy$ (pb)',fontsize=f_size-a)
+		plt.ylabel(r'$d\sigma_\text{'+coll+ r'}/$d$y$'+sig.Switch[convention][0]+' '+sig.Switch[convention][1],fontsize=f_size-a)
 		plt.yscale('log')
 		plt.text(0.5, 0.45,r'$p_\bot =$ '+str(pt)+' GeV',horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b) #bbox=dict(boxstyle="round,pad=0.3", facecolor='gray', alpha=alph)
 		plot_usuals(n=n,s1=f_size-b,s2=f_size-a)
-		n_fig = 'all_splines_Ny'+str(len(Y))+'_pt'+str(pt)+'_rs'+str(rs)+'_A'+str(A)+'_Z'+str(Z)+'.pdf'
+		n_fig = proton+'_sigma'+coll+'_all_splines_pt'+str(pt)+'_rs'+str(rs)+'_A'+str(A)+'_Z'+str(Z)+'.pdf'
 		ax.set_aspect(1.0/ax.get_data_ratio(), adjustable='box')
 		plt.savefig(os.path.join(plots_dir,n_fig),bbox_inches="tight")# bbox_inches="tight"
 		plt.show()
 	elif not All: 																# do the same here
 		for p_num in L:
-			cross = np.array([cross_section(y, pt, p_num) for y in Y])
-			fig, ax = plt.subplots(constrained_layout=True)
+			cross = np.array([cross_section(y, pt, p_num,coll=coll) for y in Y])
+			fig, ax = plt.subplots(constrained_layout=True,figsize=fig_size)
 			plt.plot(Y,cross,label= p_num_to_process[p_num])
 			plot_usuals(s=f_size)
 			plt.xlabel(r'$y$',fontsize=f_size)
 			plt.text(0.25, 0.1,r'$p_\bot =$ '+str(pt),bbox=dict(boxstyle="round,pad=0.3", facecolor='gray', alpha=alph),horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize = f_size)
-			n_fig = p_num+'_spline_Ny'+str(len(Y))+'_pt'+str(pt)+'_rs'+str(rs)+'_A'+str(A)+'_Z'+str(Z)+'.pdf'
+			n_fig = proton+'_sigma'+coll+p_num+'_spline_pt'+str(pt)+'_rs'+str(rs)+'_A'+str(A)+'_Z'+str(Z)+'.pdf'
 			ax.set_aspect(1.0/ax.get_data_ratio(), adjustable='box')
 			plt.savefig(os.path.join(plots_dir,n_fig),bbox_inches="tight")# bbox_inches="tight"
 			plt.show()
 
 def plot_f_alpha(Y,pt,L,C,n=2):
 	a=0
-	b=0
-	fig, ax = plt.subplots(constrained_layout=True)
+	b=5
+	fig, ax = plt.subplots(constrained_layout=True,figsize=fig_size)
 	ax.xaxis.set_minor_locator(MultipleLocator(1))
 	ax.yaxis.set_minor_locator(MultipleLocator(0.1))
 	for i,p_num in enumerate(L):
@@ -609,7 +610,7 @@ def plot_f_alpha(Y,pt,L,C,n=2):
 	plt.ylim(0,1.1)
 	plt.text(0.8, 0.35,r'$p_\bot =$ '+str(pt)+' GeV',horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b) #bbox=dict(boxstyle="round,pad=0.3", facecolor='gray', alpha=alph)
 	plot_usuals(n=n,s1=f_size-b,s2=f_size-a,loca='upper center')
-	n_fig = 'all_f_alpha_Ny'+str(len(Y))+'_pt'+str(pt)+'_rs'+str(rs)+'_A'+str(A)+'_Z'+str(Z)+'.pdf'
+	n_fig = proton+'_all_f_alpha_pt'+str(pt)+'_rs'+str(rs)+'_A'+str(A)+'_Z'+str(Z)+'.pdf'
 	ax.set_aspect(1.0/ax.get_data_ratio(), adjustable='box')
 	plt.savefig(os.path.join(plots_dir,n_fig),bbox_inches="tight")# bbox_inches="tight"
 	plt.show()
@@ -690,29 +691,32 @@ def pt_plots(y_list,z,q,xi,coll='pp'):
 		plt.savefig(os.path.join(plots_dir,n_fig_2),bbox_inches="tight")# bbox_inches="tight"
 		plt.show()
 
-def plot_mains(Y,pt,z,q,xi):
-	Ny = len(Y)
-	fig, ax = plt.subplots(constrained_layout=True)
+def plot_mains(pt,z,q,xi,coll='pp'):
+	a = 3
+	fig, ax = plt.subplots(constrained_layout=True,figsize=fig_size)
 	ax.xaxis.set_minor_locator(MultipleLocator(1))
-	plt.axhline(y=1, color='grey', linestyle='--')
+	ax.xaxis.set_major_locator(MultipleLocator(2))
+	ax.yaxis.set_minor_locator(MultipleLocator(0.05))
+	ax.yaxis.set_major_locator(MultipleLocator(0.1))
+	plt.axhline(y=1, color='grey', alpha=alph)
 	NY2 = 100
-	Y2 = np.linspace(-6,6, NY2)
-	R = R_frag(Y2,pt, z[0], q[0], xi[0],plot=True)
-	plt.plot(Y2,R,linestyle='--',label = r'$R_{pA}^{frag}$')
-	plot_usuals(n=2)
+	Y2 = np.linspace(y_lim[0],y_lim[1], NY2)
+	R = R_frag(Y2,pt, z[0], q[0], xi[0],coll=coll,plot=True)
+	plt.plot(Y2,R,linestyle='--',label = r'$R_{\text{pA}}^{\text{frag}}$')
+	plot_usuals(n=2,s1=f_size-a)
 	plt.xlabel('y',fontsize=f_size)
 	ax.set_aspect(1.0/ax.get_data_ratio(), adjustable='box')
-	n_fig = 'frag_and_mains_Ny'+str(Ny)+'_pt'+str(pt)+'_rs'+str(rs)+'_A'+str(A)+'_Z'+str(Z)+'.pdf'
+	plt.tight_layout()
+	n_fig = proton+'_R'+coll+'_frag_and_mains_pt'+str(pt)+'_rs'+str(rs)+'_A'+str(A)+'_Z'+str(Z)+'.pdf'
 	plt.savefig(os.path.join(plots_dir,n_fig),bbox_inches="tight")
 	plt.show()
 	# all the main_components with their color representations
 	for p_num in p_num_plot_list:
-		R_alpha = all_alpha_colors_xi(Y2, pt,p_num, xi[0], z[0],q[0])
+		R_alpha = all_alpha_colors_xi(Y2, pt,p_num, xi[0], z[0],q[0],coll=coll)
 		keys = list(R_alpha.keys())
-		fig, ax = plt.subplots(constrained_layout=True)
+		fig, ax = plt.subplots(constrained_layout=True,figsize=fig_size)
 		ax.xaxis.set_minor_locator(MultipleLocator(1))
-		ax.xaxis.set_major_locator(MultipleLocator(5))
-		# ax.xaxis.set_major_locator(MultipleLocator(1))
+		ax.xaxis.set_major_locator(MultipleLocator(2))
 		ax.yaxis.set_minor_locator(MultipleLocator(0.05))
 		ax.yaxis.set_major_locator(MultipleLocator(0.1))
 		for color in keys:
@@ -721,11 +725,15 @@ def plot_mains(Y,pt,z,q,xi):
 			else:
 				plt.plot(Y2,R_alpha[color],label = color)
 		plt.xlabel('y',fontsize=f_size)
-		plt.ylabel(r'$R_{pA}^{frag,R_\alpha}$ for $\alpha=$ '+p_num_to_process[p_num],fontsize=f_size)
-		plt.axhline(y=1, color='grey', linestyle='--')
-		plot_usuals()
+		plt.ylabel(r'$R_{\text{pA}}^{\text{frag},R_\alpha}$',fontsize=f_size)
+		plt.axhline(y=1, color='grey', alpha=alph)
+		botom, top = plt.ylim()
+		plt.ylim(botom, 1.1)
+		plot_usuals(s1 = f_size-a)
+		plt.text(0.05,0.9,r'$\alpha=$ '+p_num_to_process[p_num],horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize=f_size)
 		ax.set_aspect(1.0/ax.get_data_ratio(), adjustable='box')
-		n_fig = 'frag_and_colors_alpha'+str(p_num)+'_Ny'+str(Ny)+'_pt'+str(pt)+'_rs'+str(rs)+'_A'+str(A)+'_Z'+str(Z)+'.pdf'
+		plt.tight_layout()
+		n_fig = proton+'_R'+coll+'_frag_and_colors_alpha'+str(p_num)+'_pt'+str(pt)+'_rs'+str(rs)+'_A'+str(A)+'_Z'+str(Z)+'.pdf'
 		plt.savefig(os.path.join(plots_dir,n_fig),bbox_inches="tight")
 		plt.show()
  
@@ -835,10 +843,11 @@ def all_plots(pt,z,q,xi,coll='pp'):
 
 
 coll_type = 'pA'
-pt_plots(fixed_y, z, q, xi)
-# for p_t in p_T_dispo:
-	# plot_splines(np.linspace(-6,6,100), p_t, p_num_plot_list,p_num_color_list,n=1)
-	# plot_f_alpha(np.linspace(-6,6,100), p_t, p_num_plot_list,p_num_color_list,n=2)
+p_t = 5 
+# pt_plots(fixed_y, z, q, xi)
+for p_t in p_T_dispo:
+	plot_splines(np.linspace(-6,6,100), p_t, p_num_plot_list,p_num_color_list,n=1,coll=coll_type)
+	plot_f_alpha(np.linspace(-6,6,100), p_t, p_num_plot_list,p_num_color_list,n=2)
 	# all_plots(p_t, z, q, xi,coll=coll_type)
-# plot_mains(np.linspace(-6, 6,100),z, q, xi, n)
+# plot_mains(p_T_dispo[0],z, q, xi,coll=coll_type)
 # plot_sigma_spline(np.linspace(-6, 6,100),pt)

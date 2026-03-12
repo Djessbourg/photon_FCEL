@@ -89,7 +89,7 @@ def L(A):
         return Lp
 
 class proba():
-    def __init__(self,A,B,rs,p_t,y,alpha_s,Fc,m,q0=0.07,z=0,photon=True):
+    def __init__(self,A:float,B:float,rs:float,p_t:float,y:float,alpha_s:float,Fc:float,m:float,q0=0.07,z=0,photon=True):
         self.A = A          											#Nombre de masses du noyau cible 
         self.B = B          											#Nombre de masse de la particule incidente
         self.p_t = p_t          										#transverse momentum
