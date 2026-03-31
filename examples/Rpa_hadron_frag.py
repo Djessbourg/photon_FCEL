@@ -4,7 +4,7 @@
 # File for computing R_pA tot 
 # as a function of R_pA dir 
 # and R_pA frag.
-# Last modified: 24/02/2026
+# Last modified: 23/03/2026
 # =============================================================================
 import sys
 import os
@@ -99,7 +99,7 @@ pPb_cross_section = sig.Sigma(proton,Pb,s,Z,A)
 # Color informations on all processes
 
 process ={
-	"1":{"rho":{"3bar":2./3.,"6":1./3.},"Fc":{"3bar":4./3.,"6":2.}},
+	"1":{"rho":{"3bar":2./3.,"6":1./3.},"Fc":{"3bar":4./3.,"6":10./3.}},
 	"3":{"rho":{"1":8./9.,"8":1./9.},"Fc":{"1":0.,"8":3.}},
 	"5":{"rho":{"3bar":2./11.,"6":9./11.},"Fc":{"3bar":4./3.,"6":2.}},
 	"7":{"rho":{"1":0.,"8":1.},"Fc":{"1":0.,"8":3.}},
@@ -377,7 +377,7 @@ def R_frag_alpha(Y,pt,p_num,z,q,xi,coll='pp'):
 	R_tot = R['tot']
 	return R_tot
 
-def R_frag(Y,pt,z,q,xi,coll='pp',plot = False):
+def R_frag(Y,pt,z,q,xi,coll='pp',plot = False, smooth = False):
 	'''Return the RpA of all fragmentation processes'''
 	keys = list(process.keys())
 	R = np.zeros_like(Y)
@@ -385,7 +385,14 @@ def R_frag(Y,pt,z,q,xi,coll='pp',plot = False):
 		f = f_alpha_pt(pt)[p_num]
 		R_alpha = R_frag_alpha(Y,pt, p_num, z, q, xi,coll=coll)
 		if plot and (p_num in p_num_plot_list):
-			plt.plot(Y,R_alpha) #label=p_num_to_process[p_num]
+			if smooth:
+				N_y = len(Y)
+				y_min, y_max = min(Y), max(Y)
+				Y2 = np.linspace(y_min,y_max,4*N_y)
+				R_alpha_2 = make_smoothing_spline(Y,R_alpha)(Y2)
+				plt.plot(Y2,R_alpha_2,label=p_num_to_process[p_num]) #
+			elif not smooth :
+				plt.plot(Y,R_alpha,label=p_num_to_process[p_num]) #
 		R = R+f(Y)*R_alpha
 	return R
 
@@ -541,11 +548,12 @@ def plot_splines(Y,pt,L,C,n=2,coll ='pp',All = True):
 	'''Return the plots of cross section splines in a Y array giving pt 
 	and L the list of the p_num wanted. If all == True, then all the cross sections 
 	are ploted on the same figure with n colluns for legend'''
-	a=0
-	b=5
+	a=1
+	b=3
 	if All:
 		fig, ax = plt.subplots(constrained_layout=True,figsize=fig_size)
 		ax.xaxis.set_minor_locator(MultipleLocator(1))
+		ax.xaxis.set_major_locator(MultipleLocator(2))
 		for i,p_num in enumerate(L):
 			cross = np.array([cross_section(y, pt, p_num,coll=coll) for y in Y])
 			if (p_num =='14a') | (p_num =='14b') | (p_num =='13a')| (p_num =='13b'):
@@ -563,8 +571,12 @@ def plot_splines(Y,pt,L,C,n=2,coll ='pp',All = True):
 			plt.plot(Y,cross1+cross2,label=p_num_to_process['13'] ,color='brown') # change the color here if you want to plot both 13 and 14 process
 		plt.xlabel(r'$y$',fontsize=f_size-a)
 		plt.ylabel(r'$d\sigma_\text{'+coll+ r'}/$d$y$'+sig.Switch[convention][0]+' '+sig.Switch[convention][1],fontsize=f_size-a)
+		plt.ylim(10**2,10**5)
 		plt.yscale('log')
-		plt.text(0.5, 0.45,r'$p_\bot =$ '+str(pt)+' GeV',horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b) #bbox=dict(boxstyle="round,pad=0.3", facecolor='gray', alpha=alph)
+		plt.text(0.01, 0.8,'A = '+atom,horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-a) #bbox=dict(boxstyle="round,pad=0.3", facecolor='gray', alpha=alph)
+		plt.text(0.99, 0.77,r'$p_\bot =$ '+str(pt)+' GeV',horizontalalignment='right', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-a) #bbox=dict(boxstyle="round,pad=0.3", facecolor='gray', alpha=alph)
+		# plt.text(0.5, 0.55,r'$\sqrt{s} =$ '+str(rs)+' GeV',horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b)
+		plt.text(0.99, 0.83,r'$\sqrt{s} =$ '+str(rs/1000)+' TeV',horizontalalignment='right', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-a)
 		plot_usuals(n=n,s1=f_size-b,s2=f_size-a)
 		n_fig = proton+'_sigma'+coll+'_all_splines_pt'+str(pt)+'_rs'+str(rs)+'_A'+str(A)+'_Z'+str(Z)+'.pdf'
 		ax.set_aspect(1.0/ax.get_data_ratio(), adjustable='box')
@@ -584,10 +596,11 @@ def plot_splines(Y,pt,L,C,n=2,coll ='pp',All = True):
 			plt.show()
 
 def plot_f_alpha(Y,pt,L,C,n=2):
-	a=0
-	b=5
+	a=1
+	b=4
 	fig, ax = plt.subplots(constrained_layout=True,figsize=fig_size)
 	ax.xaxis.set_minor_locator(MultipleLocator(1))
+	ax.xaxis.set_major_locator(MultipleLocator(2))
 	ax.yaxis.set_minor_locator(MultipleLocator(0.1))
 	for i,p_num in enumerate(L):
 		f_alpha = f_alpha_pt(pt)[p_num](Y)
@@ -608,7 +621,9 @@ def plot_f_alpha(Y,pt,L,C,n=2):
 	plt.xlabel(r'$y$',fontsize=f_size-a)
 	plt.ylabel(r'$f_\alpha$',fontsize=f_size-a)
 	plt.ylim(0,1.1)
-	plt.text(0.8, 0.35,r'$p_\bot =$ '+str(pt)+' GeV',horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b) #bbox=dict(boxstyle="round,pad=0.3", facecolor='gray', alpha=alph)
+	plt.text(0.01, 0.35,r'$p_\bot =$ '+str(pt)+' GeV',horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-a) #bbox=dict(boxstyle="round,pad=0.3", facecolor='gray', alpha=alph)
+	# plt.text(0.1, 0.9,r'$\sqrt{s} =$ '+str(rs)+' GeV',horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-a)
+	plt.text(0.01, 0.45,r'$\sqrt{s} =$ '+str(rs/1000)+' TeV',horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-a)
 	plot_usuals(n=n,s1=f_size-b,s2=f_size-a,loca='upper center')
 	n_fig = proton+'_all_f_alpha_pt'+str(pt)+'_rs'+str(rs)+'_A'+str(A)+'_Z'+str(Z)+'.pdf'
 	ax.set_aspect(1.0/ax.get_data_ratio(), adjustable='box')
@@ -692,24 +707,30 @@ def pt_plots(y_list,z,q,xi,coll='pp'):
 		plt.show()
 
 def plot_mains(pt,z,q,xi,coll='pp'):
-	a = 3
+	a = 0
+	b= 3
 	fig, ax = plt.subplots(constrained_layout=True,figsize=fig_size)
 	ax.xaxis.set_minor_locator(MultipleLocator(1))
 	ax.xaxis.set_major_locator(MultipleLocator(2))
 	ax.yaxis.set_minor_locator(MultipleLocator(0.05))
 	ax.yaxis.set_major_locator(MultipleLocator(0.1))
 	plt.axhline(y=1, color='grey', alpha=alph)
-	NY2 = 100
+	NY2 = 20
 	Y2 = np.linspace(y_lim[0],y_lim[1], NY2)
-	R = R_frag(Y2,pt, z[0], q[0], xi[0],coll=coll,plot=True)
+	R = R_frag(Y2,pt, z[0], q[0], xi[0],coll=coll,plot=True,smooth=True)
 	plt.plot(Y2,R,linestyle='--',label = r'$R_{\text{pA}}^{\text{frag}}$')
-	plot_usuals(n=2,s1=f_size-a)
+	plot_usuals(n=1,s1=f_size-b)
 	plt.xlabel('y',fontsize=f_size)
+	plt.text(0.1, 0.9,'p'+atom,horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-a) #bbox=dict(boxstyle="round,pad=0.3", facecolor='gray', alpha=alph)	
+	plt.text(0.9, 0.87,r'$p_\bot =$ '+str(pt)+' GeV',horizontalalignment='right', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-a) #bbox=dict(boxstyle="round,pad=0.3", facecolor='gray', alpha=alph)
+	# plt.text(0.1, 0.9,r'$\sqrt{s} =$ '+str(rs)+' GeV',horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-a)
+	plt.text(0.9, 0.93,r'$\sqrt{s} =$ '+str(rs/1000)+' TeV',horizontalalignment='right', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-a)
 	ax.set_aspect(1.0/ax.get_data_ratio(), adjustable='box')
 	plt.tight_layout()
 	n_fig = proton+'_R'+coll+'_frag_and_mains_pt'+str(pt)+'_rs'+str(rs)+'_A'+str(A)+'_Z'+str(Z)+'.pdf'
 	plt.savefig(os.path.join(plots_dir,n_fig),bbox_inches="tight")
 	plt.show()
+	plt.close()
 	# all the main_components with their color representations
 	for p_num in p_num_plot_list:
 		R_alpha = all_alpha_colors_xi(Y2, pt,p_num, xi[0], z[0],q[0],coll=coll)
@@ -719,18 +740,24 @@ def plot_mains(pt,z,q,xi,coll='pp'):
 		ax.xaxis.set_major_locator(MultipleLocator(2))
 		ax.yaxis.set_minor_locator(MultipleLocator(0.05))
 		ax.yaxis.set_major_locator(MultipleLocator(0.1))
+		Y = np.linspace(y_lim[0],y_lim[1], 4*NY2)
 		for color in keys:
 			if color == 'tot':
 				plt.plot(Y2,R_alpha[color],linestyle='--',color = 'red',label = color)
 			else:
-				plt.plot(Y2,R_alpha[color],label = color)
+				R_Ralpha = make_smoothing_spline(Y2,R_alpha[color])
+				plt.plot(Y,R_Ralpha(Y),label = color)
 		plt.xlabel('y',fontsize=f_size)
 		plt.ylabel(r'$R_{\text{pA}}^{\text{frag},R_\alpha}$',fontsize=f_size)
 		plt.axhline(y=1, color='grey', alpha=alph)
 		botom, top = plt.ylim()
 		plt.ylim(botom, 1.1)
 		plot_usuals(s1 = f_size-a)
-		plt.text(0.05,0.9,r'$\alpha=$ '+p_num_to_process[p_num],horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize=f_size)
+		plt.text(0.1,0.9,p_num_to_process[p_num],horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize=f_size)
+		plt.text(0.9, 0.9,'p'+atom,horizontalalignment='right', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-a) #bbox=dict(boxstyle="round,pad=0.3", facecolor='gray', alpha=alph)	
+		plt.text(0.5, 0.2,r'$p_\bot =$ '+str(pt)+' GeV',horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-a) #bbox=dict(boxstyle="round,pad=0.3", facecolor='gray', alpha=alph)
+		# plt.text(0.1, 0.9,r'$\sqrt{s} =$ '+str(rs)+' GeV',horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-a)
+		plt.text(0.5, 0.1,r'$\sqrt{s} =$ '+str(rs/1000)+' TeV',horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-a)
 		ax.set_aspect(1.0/ax.get_data_ratio(), adjustable='box')
 		plt.tight_layout()
 		n_fig = proton+'_R'+coll+'_frag_and_colors_alpha'+str(p_num)+'_pt'+str(pt)+'_rs'+str(rs)+'_A'+str(A)+'_Z'+str(Z)+'.pdf'
@@ -843,11 +870,12 @@ def all_plots(pt,z,q,xi,coll='pp'):
 
 
 coll_type = 'pA'
-p_t = 5 
+# p_t = 5 
 # pt_plots(fixed_y, z, q, xi)
-for p_t in p_T_dispo:
-	plot_splines(np.linspace(-6,6,100), p_t, p_num_plot_list,p_num_color_list,n=1,coll=coll_type)
-	plot_f_alpha(np.linspace(-6,6,100), p_t, p_num_plot_list,p_num_color_list,n=2)
+y_lim = (-6,6)
+# for p_t in p_T_dispo:
+	# plot_splines(np.linspace(y_lim[0],y_lim[1],100), p_t, p_num_plot_list,p_num_color_list,n=1,coll=coll_type)
+	# plot_f_alpha(np.linspace(y_lim[0],y_lim[1],100), p_t, p_num_plot_list,p_num_color_list,n=2)
 	# all_plots(p_t, z, q, xi,coll=coll_type)
-# plot_mains(p_T_dispo[0],z, q, xi,coll=coll_type)
+plot_mains(p_T_dispo[0],z, q, xi,coll=coll_type)
 # plot_sigma_spline(np.linspace(-6, 6,100),pt)

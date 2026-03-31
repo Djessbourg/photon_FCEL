@@ -61,7 +61,7 @@ Z_to_ylim = {
 }
 
 Z_to_p_Tlim ={
-	82:(3,15),
+	82:(10,80),
 	79:(2,6)
 }
 
@@ -4444,8 +4444,8 @@ class Sigma:
 		C_FCEL = N_c
 		proba = lambda y: prob.proba(self.A,self.B,rs,p_T,y,alpha_s,C_FCEL,0,q0=q0)
 		Delta_Qs = lambda y: proba(y).Delta_Q(Xi_tilde)
-		x_mean_FCEG =  np.array([alpha_s*C_FCEG*Delta_Qs(y)*(Xi_tilde)/p_T for y in Y]) #In the paper, it's (1-Xi) because Xi has the other cinematic definition
-		x_mean_FCEL =  np.array([alpha_s*C_FCEL*Delta_Qs(y)*(Xi_tilde)/p_T for y in Y])
+		x_mean_FCEG =  np.array([alpha_s*C_FCEG*Delta_Qs(y)*(1-Xi_tilde)/p_T for y in Y]) #In the paper, it's (Xi) because Xi has the other kinematic definition
+		x_mean_FCEL =  np.array([alpha_s*C_FCEL*Delta_Qs(y)*(1-Xi_tilde)/p_T for y in Y])
 		# Value of the 0th order for the RpA
 		R = 1 					
 		# Cross section of each process as a function of y 

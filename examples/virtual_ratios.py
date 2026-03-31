@@ -26,6 +26,7 @@ def plot_usuals(n=1,s1=f_size,s2=f_size,loca = 'best'):
 	
 ### Initialisation of a sigma object ###
 rs = 8800
+# rs= 200
 s = (rs)**2 # CM energy in Gev2
 proton = "NNPDF40_nlo_as_01180"
 Pb = "nNNPDF30_nlo_as_0118_A208_Z82"
@@ -48,7 +49,7 @@ convention = 'd2p_t'													# Define a cross section convention btw dp_t, d
 col_type = 'pp'
 Collision = sig.Collision
 
-p_T = 5																# GeV
+p_T = 5															# GeV
 x_T = (2.*p_T)/rs 
 ### Xi function ###
 Xi_dict = sig.Xi_dict
@@ -65,8 +66,8 @@ fig_size = (5,5)
 
 
 #comparison btw two formulas (seems to be perfect at m = 0)
-b = (m/p_T)**2
-Y = sig.Y_list_M(x_T,b)
+# b = (m/p_T)**2
+# Y = sig.Y_list_M(x_T,b)
 
 # qg_M, gq_M, qqbar_M, qbarq_M = [],[],[],[]
 # qg, gq, qqbar, qbarq = [],[],[],[]
@@ -149,9 +150,9 @@ Y = sig.Y_list_M(x_T,b)
 # ax.yaxis.set_major_locator(MultipleLocator(0.1))
 # plt.axhline(y=1, color='grey',alpha=alph)
 
-for m in M:
-    # b = (m/p_T)**2
-    # Y = sig.Y_list_M(x_T,b)
+# for m in M:
+#     b = (m/p_T)**2
+#     Y = sig.Y_list_M(x_T,b)
     # # print((min(Y),max(Y)))
     # R_qg, R_gq, R_qqbar, R_qbarq = [],[],[],[]
     # for y in Y:
@@ -174,9 +175,9 @@ for m in M:
     ### Ratios ###
     # FCEL/G
     # y dependant
-    err ='q0,mu,pdf'
-    # err = 'mu'
-    # # err=''
+    # err ='q0,mu,pdf'
+    # # err = 'mu'
+    # # # err=''
     # a=0
     # if m == 0:
     #     f_name = proton+'_True_RpA_'+str(rs)+'GeV_Z'+str(Z)+'_A'+str(A)+'_'+str(p_T)+'GeV.txt'
@@ -225,19 +226,20 @@ for m in M:
     # # plt.ylabel(r'$\tilde{R}_{\text{pA}}$',fontsize= f_size)
     # # plt.ylim(0.8,1.1)
     # plt.ylim(0.7,1.1)
-    # plt.xlim(-4,4)
-    # # plt.xlim(-3,3)
+    # # plt.xlim(-4,4)
+    # plt.xlim(-3,3)
     # plot_usuals(s1=f_size,s2=f_size,loca = 'lower right')
     # ax.set_aspect(1.0/ax.get_data_ratio(), adjustable='box')
     # plt.text(0.8, 0.9, r'p'+atom, horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize=f_size-a)
-    # # plt.text(0.1, 0.9, r'$\sqrt{s} =$'+str(rs) +r' GeV', horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize=f_size)
-    # plt.text(0.1, 0.9, r'$\sqrt{s} =$'+str(rs/1000) +r' TeV', horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize=f_size)
+    # plt.text(0.1, 0.9, r'$\sqrt{s} =$'+str(rs) +r' GeV', horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize=f_size)
+    # # plt.text(0.1, 0.9, r'$\sqrt{s} =$'+str(rs/1000) +r' TeV', horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize=f_size)
     # plt.text(0.1, 0.8, r'$p_\bot =$'+str(p_T) +r' GeV', horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize=f_size)
     # plt.text(0.1, 0.7, r'$M =$'+str(m) +r' GeV', horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize=f_size)
     # plt.tight_layout()
-    # plt.savefig(os.path.join(plots_dir, proton+'True_RpA_M_'+str(rs)+'GeV_Z'+str(Z)+'_A'+str(A)+convention+str(p_T)+'GeV.pdf'),bbox_inches="tight")
-    # plt.savefig(os.path.join(plots_dir, proton+'RIpA_M_'+str(rs)+'GeV_Z'+str(Z)+'_A'+str(A)+convention+str(p_T)+'GeV.pdf'),bbox_inches="tight")
-    # plt.show()
+    # plt.savefig(os.path.join(plots_dir, proton+'True_RpA_M'+str(m)+'GeV_'+str(rs)+'GeV_Z'+str(Z)+'_A'+str(A)+convention+str(p_T)+'GeV.pdf'),bbox_inches="tight")
+    # # plt.savefig(os.path.join(plots_dir, proton+'RIpA_M_'+str(rs)+'GeV_Z'+str(Z)+'_A'+str(A)+convention+str(p_T)+'GeV.pdf'),bbox_inches="tight")
+    # # plt.show()
+    # plt.close()
 
 # plt.legend(loc='lower right',frameon =False,fontsize=f_size-a)
 # plt.xlabel('y',fontsize=f_size-a)
@@ -245,7 +247,7 @@ for m in M:
 # # plt.ylabel(r'$\tilde{R}_{\text{pA}}$',fontsize= f_size)
 # # plt.ylim(0.8,1.1)
 # plt.ylim(0.7,1.1)
-# # plt.xlim(-4,4)
+# plt.xlim(-4,4)
 # plot_usuals(s1=f_size,s2=f_size,loca = 'lower right')
 # ax.set_aspect(1.0/ax.get_data_ratio(), adjustable='box')
 # plt.text(0.8, 0.9, r'p'+atom, horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize=f_size-a)
@@ -259,22 +261,89 @@ for m in M:
 # plt.close()
 
 #Mass depedancy test
-y = -5
-err = ''
+y = 0
+y_list=[-4,0]
+color_list = ['magenta','orange']
+err ='q0,mu,pdf'
 
-f_name = 'Mass_test_repaired.txt'
+fig, ax = plt.subplots(constrained_layout=True,figsize=fig_size)
+ax.xaxis.set_minor_locator(MultipleLocator(1))
+# ax.xaxis.set_major_locator(MultipleLocator(1))
+ax.xaxis.set_major_locator(MultipleLocator(2))
+ax.yaxis.set_minor_locator(MultipleLocator(0.05))
+ax.yaxis.set_major_locator(MultipleLocator(0.1))
+plt.axhline(y=1, color='grey',alpha=alph)
+for i,y in enumerate(y_list):
+    # f_name = 'Mass_test_repaired.txt'
+    f_name = proton+'_True_RpA_dM_y'+str(y)+'_'+str(rs)+'GeV_Z'+str(Z)+'_A'+str(A)+'_'+str(p_T)+'GeV.txt'
 
-if os.path.exists(os.path.join(RpA_dir,f_name)):
-    print(f"The file '{f_name}' already exists. It is loaded.")
-    Y,Rpa ,Rpa_plus,Rpa_minus, Rpa_plus_q,Rpa_minus_q,Rpa_plus_mu,Rpa_minus_mu,Rpa_plus_pdf,Rpa_minus_pdf = np.loadtxt(os.path.join(RpA_dir,f_name))
-else:
-    print("The file does not exists")
-    M_list,Rpa ,err_Rpa, err_var_Rpa = pPb_cross_section.Uncertainties_True_RpA_dM(y,x_T,switch = convention,var_err= err)
-    Rpa_plus,Rpa_minus = err_Rpa[0],err_Rpa[1]
-    Rpa_plus_q,Rpa_minus_q,Rpa_plus_mu,Rpa_minus_mu,Rpa_plus_pdf,Rpa_minus_pdf= err_var_Rpa[0],err_var_Rpa[1],err_var_Rpa[2],err_var_Rpa[3],err_var_Rpa[4],err_var_Rpa[5]
-    r = [M_list,Rpa,Rpa_plus,Rpa_minus,Rpa_plus_q,Rpa_minus_q,Rpa_plus_mu,Rpa_minus_mu,Rpa_plus_pdf,Rpa_minus_pdf]
-    np.savetxt(os.path.join(RpA_dir,f_name), r)
-    print(f" '{f_name}' has been created")
+    if os.path.exists(os.path.join(RpA_dir,f_name)):
+        print(f"The file '{f_name}' already exists. It is loaded.")
+        M_list,Rpa ,Rpa_plus,Rpa_minus, Rpa_plus_q,Rpa_minus_q,Rpa_plus_mu,Rpa_minus_mu,Rpa_plus_pdf,Rpa_minus_pdf = np.loadtxt(os.path.join(RpA_dir,f_name))
+    else:
+        print("The file does not exists")
+        M_list,Rpa ,err_Rpa, err_var_Rpa = pPb_cross_section.Uncertainties_True_RpA_dM(y,x_T,switch = convention,var_err= err)
+        Rpa_plus,Rpa_minus = err_Rpa[0],err_Rpa[1]
+        Rpa_plus_q,Rpa_minus_q,Rpa_plus_mu,Rpa_minus_mu,Rpa_plus_pdf,Rpa_minus_pdf= err_var_Rpa[0],err_var_Rpa[1],err_var_Rpa[2],err_var_Rpa[3],err_var_Rpa[4],err_var_Rpa[5]
+        r = [M_list,Rpa,Rpa_plus,Rpa_minus,Rpa_plus_q,Rpa_minus_q,Rpa_plus_mu,Rpa_minus_mu,Rpa_plus_pdf,Rpa_minus_pdf]
+        np.savetxt(os.path.join(RpA_dir,f_name), r)
+        print(f" '{f_name}' has been created")
 
-plt.plot(M_list,Rpa)
-plt.show()
+    # m_mu,M_mu = sig.min_max([Rpa+Rpa_plus_mu,Rpa-Rpa_minus_mu,Rpa])
+    # m_q,M_q = sig.min_max([Rpa+Rpa_plus_q,Rpa-Rpa_minus_q,Rpa])
+    # m_pdf, M_pdf = sig.min_max([Rpa+Rpa_plus_pdf,Rpa-Rpa_minus_pdf])
+
+    # fig, ax = plt.subplots(constrained_layout=True,figsize=fig_size)
+    # ax.xaxis.set_minor_locator(MultipleLocator(1))
+    # # ax.xaxis.set_major_locator(MultipleLocator(1))
+    # ax.xaxis.set_major_locator(MultipleLocator(2))
+    # ax.yaxis.set_minor_locator(MultipleLocator(0.05))
+    # ax.yaxis.set_major_locator(MultipleLocator(0.1))
+    # plt.fill_between(M_list,m_mu,M_mu,color = 'blue',alpha = alph,label=r'$\sigma_\mu $')
+    # plt.fill_between(M_list,m_q,M_q,color='red', alpha=alph,label=r'$\sigma_{\hat{q}_0}$')
+    # plt.fill_between(M_list,m_pdf,M_pdf,color='green', alpha=alph,label=r'$\sigma_{pdf}$')
+    # plt.plot(M_list,Rpa+Rpa_plus,color = 'blue', alpha = 0.5)
+    # plt.plot(M_list,Rpa-Rpa_minus,color = 'blue', alpha = 0.5)
+    # plt.axhline(y=1, color='grey',alpha=alph)
+    # plt.plot(M_list,Rpa,color='blue')
+
+    plt.fill_between(M_list,Rpa-Rpa_minus,Rpa+Rpa_plus,alpha=alph,color=color_list[i],label=r'$y=$'+str(y))
+
+
+    # plt.legend(loc='lower right',frameon =False,fontsize=f_size-a)
+    # plt.xlabel('M (GeV)',fontsize=f_size-a)
+    # plt.ylabel(r'$R_{\text{pA}}$',fontsize= f_size)
+    # # plt.ylabel(r'$\tilde{R}_{\text{pA}}$',fontsize= f_size)
+    # # plt.ylim(0.8,1.1)
+    # plt.ylim(0.7,1.1)
+    # # plt.xlim(-4,4)
+    # # plt.xlim(-3,3)
+    # plot_usuals(s1=f_size,s2=f_size,loca = 'lower right')
+    # ax.set_aspect(1.0/ax.get_data_ratio(), adjustable='box')
+    # plt.text(0.8, 0.9, r'p'+atom, horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize=f_size-a)
+    # # plt.text(0.1, 0.9, r'$\sqrt{s} =$'+str(rs) +r' GeV', horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize=f_size)
+    # plt.text(0.1, 0.9, r'$\sqrt{s} =$'+str(rs/1000) +r' TeV', horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize=f_size)
+    # plt.text(0.1, 0.8, r'$p_\bot =$'+str(p_T) +r' GeV', horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize=f_size)
+    # plt.tight_layout()
+    # plt.savefig(os.path.join(plots_dir, proton+'True_RpA_dM_y'+str(y)+'_'+str(rs)+'GeV_Z'+str(Z)+'_A'+str(A)+convention+str(p_T)+'GeV.pdf'),bbox_inches="tight")
+    # # plt.show()
+    # plt.close()
+
+plt.legend(loc='lower right',frameon =False,fontsize=f_size-a)
+plt.xlabel('M (GeV)',fontsize=f_size-a)
+plt.ylabel(r'$R_{\text{pA}}$',fontsize= f_size)
+# plt.ylabel(r'$\tilde{R}_{\text{pA}}$',fontsize= f_size)
+# plt.ylim(0.8,1.1)
+plt.ylim(0.7,1.1)
+# plt.xlim(-4,4)
+# plt.xlim(-3,3)
+plot_usuals(s1=f_size,s2=f_size,loca = 'lower right')
+ax.set_aspect(1.0/ax.get_data_ratio(), adjustable='box')
+plt.text(0.8, 0.9, r'p'+atom, horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize=f_size-a)
+# plt.text(0.1, 0.9, r'$\sqrt{s} =$'+str(rs) +r' GeV', horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize=f_size)
+plt.text(0.1, 0.9, r'$\sqrt{s} =$'+str(rs/1000) +r' TeV', horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize=f_size)
+plt.text(0.1, 0.8, r'$p_\bot =$'+str(p_T) +r' GeV', horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize=f_size)
+plt.tight_layout()
+plt.savefig(os.path.join(plots_dir, proton+'True_RpA_dM_y_comp_'+str(rs)+'GeV_Z'+str(Z)+'_A'+str(A)+convention+str(p_T)+'GeV.pdf'),bbox_inches="tight")
+# plt.show()
+plt.close()
