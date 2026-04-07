@@ -19,8 +19,8 @@ from src import sigma as sig
 from src import Collision
 
 ### Initialisation of a sigma object ###
-# rs = 8800
-rs = 200
+rs = 8800
+# rs = 200
 s = (rs)**2 # CM energy in Gev2
 # proton = "nNNPDF30_nlo_as_0118_p"
 # proton = "NNPDF40_lo_as_01180"
@@ -32,8 +32,8 @@ proton = "NNPDF40_nlo_as_01180"
 
 Pb = "nNNPDF30_nlo_as_0118_A208_Z82"
 
-# atom = 'Pb'
-atom = 'Au'
+atom = 'Pb'
+# atom = 'Au'
 
 # y_abs = 6 # for Pb
 # y_abs = 4.5 # for Au
@@ -48,8 +48,8 @@ pPb_cross_section = sig.Sigma(proton,Pb,s,Z,A)
 d = sig.Switch
 
 ### first atempts to reproduce last results ###
-# p_T = 5 #GeV
-p_T = 2
+p_T = 5 #GeV
+# p_T = 2
 x_T = (2.0*p_T)/rs
 num = 0																			# The central set 
 Y = sig.Y_list(x_T,Z)														
@@ -170,17 +170,25 @@ plt.axhline(y=1, color='grey',alpha=alph)
 # plt.plot(Y,R_3,label=r'$\ell=3$')
 # plt.plot(Y,R_4,label=r'$\ell=4$')
 # plt.plot(Y,Rpa,color='blue',linestyle= '--',label=r'$\ell=$ Sum')
-plt.plot(Y,Rpa,color='blue',label=r'$R_{\text{pA}}$') 
-plt.fill_between(Y,Rpa-Rpa_minus,Rpa+Rpa_plus,color = 'blue',alpha=0.3)
+
+# plt.plot(Y,Rpa,color='blue',label=r'$R_{\text{pA}}$') 
+# plt.fill_between(Y,Rpa-Rpa_minus,Rpa+Rpa_plus,color = 'blue',alpha=0.3)
 
 xi_values = [0.05*i for i in range(1, 20)]
 cmap = cm.plasma
 norm = mcolors.Normalize(vmin=min(xi_values), vmax=max(xi_values))
-						 
+
+R_pA_FCEL,R_pA_FCEG= pPb_cross_section.Rpp_FCELG_dy(x_T,num,q0,FCELG=True)
+		 
 for xi in xi_values:
-	Rpa_taylor = pPb_cross_section.Rpp_Taylor_FCELG_dy(x_T,1-xi,num,q0,switch=convention) # i put 1-xi to be coherent with the paper
+	R_FCEL, R_FCEG, Rpa_taylor = pPb_cross_section.Rpp_Taylor_FCELG_dy(x_T,1-xi,num,q0,switch=convention,FCELG=True) # i put 1-xi to be coherent with the paper
 	color = cmap(norm(xi))
-	plt.plot(Y, Rpa_taylor,alpha=0.6, color=color)
+	# plt.plot(Y, Rpa_taylor,alpha=0.6, color=color)
+	plt.plot(Y, R_FCEL,alpha=0.6, color=color)
+	plt.plot(Y, R_FCEG,alpha=0.6, color=color)
+
+plt.plot(Y,R_pA_FCEL,color = 'blue',alpha=0.5,label='FCEL')			
+plt.plot(Y,R_pA_FCEG,color = 'red',alpha= 0.5, label = 'FCEG')	
 
 sm = cm.ScalarMappable(cmap=cmap, norm=norm)
 sm.set_array([])
@@ -191,7 +199,7 @@ cbar.set_label(r'$\tilde{\xi}$', fontsize=f_size)
 # plt.ylim(bottom= 0.9,top = 1.05)
 # plt.ylabel(r'$R_{\ell}=\sigma_{\ell}^\text{pA}/A\sigma_{\ell}^\text{pp}$',fontsize= f_size-a)
 plt.ylim(0.8,1.1)
-plt.xlim(-4,4)
+plt.xlim(-6,6)
 plt.xlabel('y',fontsize=f_size)
 plot_usuals(s1=f_size,s2=f_size,loca = 'lower left',n=1)
 ax.set_aspect(1.0/ax.get_data_ratio(), adjustable='box')
@@ -202,6 +210,7 @@ plt.text(0.1, 0.8, r'$\sqrt{s} =$'+str(rs) +r' GeV', horizontalalignment='left',
 # plt.tight_layout()
 # plt.savefig(os.path.join(plots_dir, 'R_all'+str(rs)+'GeV_'+convention+str(p_T)+'GeV.pdf'),bbox_inches="tight")
 plt.savefig(os.path.join(plots_dir, 'R_pA_vs_Taylor'+str(rs)+'GeV_Z'+str(Z)+'_A'+str(A)+convention+str(p_T)+'GeV.pdf'),bbox_inches="tight")
+plt.savefig(os.path.join(plots_dir, 'R_pA_FCELG_vs_Taylor'+str(rs)+'GeV_Z'+str(Z)+'_A'+str(A)+convention+str(p_T)+'GeV.pdf'),bbox_inches="tight")
 plt.show()
 plt.close()
 

@@ -57,7 +57,7 @@ Atom ={ # Add little by little the nuclei needed
 
 Z_to_ylim = {
 	82:6,
-	79:3
+	79:4
 }
 
 Z_to_p_Tlim ={
@@ -3486,7 +3486,7 @@ class Sigma:
 		R_qG = pA_qG[0]/sigma_qG
 		return [R_qqbar,R_qbarq,R_Gq,R_qG]
 	
-	def Rpp_FCELG_dy(self,x_T,num,q0,mu_factor=1,mu_f_factor=1,iso='p',n_f=3,switch ='dp_t',eps = 1e-15,var_int='nu'):
+	def Rpp_FCELG_dy(self,x_T,num,q0,mu_factor=1,mu_f_factor=1,iso='p',n_f=3,switch ='dp_t',eps = 1e-15,var_int='nu',FCELG = False):
 		'''Return the ratio of the shifted sigma_pp (or pn if iso = 'n') 
 		over sigma_pp (resp pn), with:
 		- x_T = 2*p_T/√s ,p_T the transverse momentum
@@ -3500,7 +3500,11 @@ class Sigma:
 		- var_int (str) the integration variable (="nu" by default)'''
 		FCEL_cen, FCEG_cen = self.FCEL_G_integration_dy(x_T,num,mu_factor= mu_factor,mu_f_factor=mu_f_factor,iso=iso,n_f=n_f,switch =switch,eps = eps,var_int=var_int,q0=q0)
 		sigma_pp_cen,err_pp_cen = self.dsigma_tot_dy(x_T,num, mu_factor= mu_factor,mu_f_factor=mu_f_factor,iso=iso,n_f=n_f,is_pp=True,switch =switch)
-		return (FCEL_cen[0]+FCEG_cen[0])/sigma_pp_cen
+		sigma_FCEL, sigma_FCEG = self.dsigma_FCELG_dy(x_T,num, mu_factor= mu_factor,mu_f_factor=mu_f_factor,iso=iso,n_f=n_f,is_pp=True,switch =switch)
+		if FCELG:
+			return (FCEL_cen[0]/sigma_FCEL[0],FCEG_cen[0]/sigma_FCEG[0])
+		else:
+			return (FCEL_cen[0]+FCEG_cen[0])/sigma_pp_cen
 	
 	def Rpp_FCELG_dy_M(self,x_T,M,num,q0,mu_factor=1,mu_f_factor=1,iso='p',n_f=3,switch ='dp_t',eps = 1e-15,var_int='nu'):
 		'''Return the ratio of the shifted sigma_pp (or pn if iso = 'n') 
@@ -4421,7 +4425,7 @@ class Sigma:
 	
 	### Other functions ###
 
-	def Rpp_Taylor_FCELG_dy(self,x_T,Xi_tilde,num,q0,mu_factor=1,mu_f_factor=1,iso='p',n_f=3,switch ='dp_t',eps = 1e-15,var_int='nu'):
+	def Rpp_Taylor_FCELG_dy(self,x_T,Xi_tilde,num,q0,mu_factor=1,mu_f_factor=1,iso='p',n_f=3,switch ='dp_t',eps = 1e-15,var_int='nu',FCELG = False):
 		'''Return the ratio (for real photons) of the Taylor approximation at the first order 
 		of the shifted sigma_pp in rapidity (or pn if iso = 'n') 
 		over sigma_pp (resp pn), with:
@@ -4459,6 +4463,8 @@ class Sigma:
 		L_qqbar = np.array([qqbar(y) for y in Y])
 		L_qbarq = np.array([qbarq(y) for y in Y])
 
+		L_FCEG = L_qg
+		L_FCEL = L_gq+L_qqbar+L_qbarq
 		L_tot = L_qg+L_gq+L_qqbar+L_qbarq
 		
 		# Derivatives according to y 
@@ -4475,7 +4481,10 @@ class Sigma:
 		FCEL = x_mean_FCEL*(Rgq+Rqqbar+Rqbarq)
 		FCEG = x_mean_FCEG*Rqg
 		R += (FCEL + FCEG)/L_tot
-		return R 
+		if FCELG:
+			return [1+FCEL/L_FCEL,1+FCEG/L_FCEG,R]
+		else:
+			return R 
 	
 	def P_T_list(self,y,Z = 82):
 		'''The numpy linspace of transverse momentum in GeV, with:
