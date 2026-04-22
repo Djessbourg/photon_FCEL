@@ -31,17 +31,18 @@ min_max = sig.min_max 															# to compute the min and max of a set of da
 
 # Context data
 
-rs = 8800
-# rs = 200
+# rs = 8800
+rs = 200
 s = float((rs)**2) # CM energy in Gev^2
 # p_T_dispo = [3,5,10,15]
-p_T_dispo = [5]
+# p_T_dispo = [5]
+p_T_dispo = [2]
 # p_T_dispo = [2,4,6]
 
 Atom = sig.Atom
 
-atom = 'Pb'
-# atom = 'Au'
+# atom = 'Pb'
+atom = 'Au'
 
 Z = Atom[atom]['Z']
 A = Atom[atom]['A']
@@ -773,39 +774,42 @@ def all_plots(pt,z,q,xi,coll='pp'):
 	r_dir , r_dir_minus, r_dir_plus = r[4:7]
 	r_frag, r_frag_minus, r_frag_plus = r[7:]
 	# first plot comparing R_frag, R_dir and R_tot, with all uncertainties
-	# fig, ax = plt.subplots(constrained_layout=True,figsize=fig_size)
-	# ax.xaxis.set_minor_locator(MultipleLocator(1))
-	# ax.xaxis.set_major_locator(MultipleLocator(2))
-	# ax.yaxis.set_minor_locator(MultipleLocator(0.05))
-	# ax.yaxis.set_major_locator(MultipleLocator(0.1))
-	# plt.axhline(y=1, color='grey', alpha=alph)
+	fig, ax = plt.subplots(constrained_layout=True,figsize=fig_size)
+	ax.xaxis.set_minor_locator(MultipleLocator(1))
+	ax.xaxis.set_major_locator(MultipleLocator(2))
+	ax.yaxis.set_minor_locator(MultipleLocator(0.05))
+	ax.yaxis.set_major_locator(MultipleLocator(0.1))
+	plt.axhline(y=1, color='grey', alpha=alph)
 	if coll == 'pp':
 		# plt.plot(Y,r_dir,color = dir_color, label = r'$R_{\text{pp}}^{\text{dir}}$')
-		# plt.plot(Y,r_frag,color = frag_color,label = r'$R_{\text{pp}}^{\text{frag}}$')
+		plt.plot(Y,r_frag,color = frag_color,label = r'$R_{\text{pp}}^{\text{frag}}$')
 		# plt.plot(Y,r_tot,color = tot_color,label = r'$R_{\text{pp}}^{\text{tot}}$')
-		n_fig = proton+'Rpp_tot_dir_frag_pt'+str(pt)+'_rs'+str(rs)+'_A'+str(A)+'_Z'+str(Z)+'.pdf'
+		# n_fig = proton+'Rpp_tot_dir_frag_pt'+str(pt)+'_rs'+str(rs)+'_A'+str(A)+'_Z'+str(Z)+'.pdf'
 		n_fig_2 = proton+'Rpp_tot_vs_dir_pt'+str(pt)+'_rs'+str(rs)+'_A'+str(A)+'_Z'+str(Z)+'.pdf'
+		n_fig = proton+'Rpp_frag_pt'+str(pt)+'_rs'+str(rs)+'_A'+str(A)+'_Z'+str(Z)+'.pdf'
 	if coll == 'pA':
 		# plt.plot(Y,r_dir,color = dir_color, label = r'$R_{\text{pA}}^{\text{dir}}$')
-		# plt.plot(Y,r_frag,color = frag_color,label = r'$R_{\text{pA}}^{\text{frag}}$')
+		plt.plot(Y,r_frag,color = frag_color,label = r'$R_{\text{pA}}^{\text{frag}}$')
 		# plt.plot(Y,r_tot,color = tot_color,label = r'$R_{\text{pA}}^{\text{tot}}$')
-		n_fig = proton+'RpA_tot_dir_frag_pt'+str(pt)+'_rs'+str(rs)+'_A'+str(A)+'_Z'+str(Z)+'.pdf'
+		# n_fig = proton+'RpA_tot_dir_frag_pt'+str(pt)+'_rs'+str(rs)+'_A'+str(A)+'_Z'+str(Z)+'.pdf'
 		n_fig_2 = proton+'RpA_tot_vs_dir_pt'+str(pt)+'_rs'+str(rs)+'_A'+str(A)+'_Z'+str(Z)+'.pdf'
+		n_fig = proton+'RpA_frag_pt'+str(pt)+'_rs'+str(rs)+'_A'+str(A)+'_Z'+str(Z)+'.pdf'
 	# plt.fill_between(Y, r_tot_minus, r_tot_plus, color=tot_color, alpha=alph)
 	# plt.fill_between(Y, r_dir_minus, r_dir_plus, color=dir_color, alpha=alph)
-	# # plt.fill_between(Y, r_frag_minus, r_frag_plus, color=frag_color, alpha=alph)
-	# plot_usuals(n=2,s1=f_size-b,s2=f_size-a,loca = 'lower right')
-	# plt.ylim(0.7,1.1)
-	# plt.xlim(y_lim)
-	# plt.xlabel('y',fontsize=f_size-a)
-	# plt.ylabel(r'$R_{\text{pA}}$', fontsize=f_size-a)
-	# plt.text(0.8, 0.9, r'p'+atom, horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize=f_size-a)
-	# plt.text(0.1, 0.8,r'$p_\bot =$ '+str(pt)+' GeV',horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b) #bbox=dict(boxstyle="round,pad=0.3", facecolor='gray', alpha=alph)
-	# # plt.text(0.1, 0.8,r'$\sqrt{s} =$ '+str(rs)+' GeV',horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b)
+	plt.fill_between(Y, r_frag_minus, r_frag_plus, color=frag_color, alpha=alph)
+	plot_usuals(n=2,s1=f_size-b,s2=f_size-a,loca = 'lower right')
+	plt.ylim(0.7,1.1)
+	plt.xlim(y_lim)
+	plt.xlabel('y',fontsize=f_size-a)
+	plt.ylabel(r'$R_{\text{pA}}$', fontsize=f_size-a)
+	plt.text(0.8, 0.9, r'p'+atom, horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize=f_size-a)
+	plt.text(0.1, 0.8,r'$p_\bot =$ '+str(pt)+' GeV',horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b) #bbox=dict(boxstyle="round,pad=0.3", facecolor='gray', alpha=alph)
+	plt.text(0.1, 0.9,r'$\sqrt{s} =$ '+str(rs)+' GeV',horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b)
 	# plt.text(0.1, 0.9,r'$\sqrt{s} =$ '+str(rs/1000)+' TeV',horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b)
-	# ax.set_aspect(1.0/ax.get_data_ratio(), adjustable='box')
-	# plt.savefig(os.path.join(plots_dir,n_fig),bbox_inches="tight")
-	# plt.show()
+	ax.set_aspect(1.0/ax.get_data_ratio(), adjustable='box')
+	plt.savefig(os.path.join(plots_dir,n_fig),bbox_inches="tight")
+	plt.show()
+	plt.close()
 	# RpA_tot unc only + dir in dash
 	fig, ax = plt.subplots(constrained_layout=True,figsize=fig_size)
 	ax.xaxis.set_minor_locator(MultipleLocator(1))
@@ -823,8 +827,8 @@ def all_plots(pt,z,q,xi,coll='pp'):
 	plt.ylabel(r'$R_{\text{pA}}$',fontsize=f_size-a)
 	plt.text(0.8, 0.9, r'p'+atom, horizontalalignment='center', verticalalignment='center',transform=ax.transAxes,fontsize=f_size-a)
 	plt.text(0.1, 0.8,r'$p_\bot =$ '+str(pt)+' GeV',horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b) #bbox=dict(boxstyle="round,pad=0.3", facecolor='gray', alpha=alph)
-	# plt.text(0.1, 0.9,r'$\sqrt{s} =$ '+str(rs)+' GeV',horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b)
-	plt.text(0.1, 0.9,r'$\sqrt{s} =$ '+str(rs/1000)+' TeV',horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b)
+	plt.text(0.1, 0.9,r'$\sqrt{s} =$ '+str(rs)+' GeV',horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b)
+	# plt.text(0.1, 0.9,r'$\sqrt{s} =$ '+str(rs/1000)+' TeV',horizontalalignment='left', verticalalignment='center',transform=ax.transAxes,fontsize = f_size-b)
 	ax.set_aspect(1.0/ax.get_data_ratio(), adjustable='box')
 	plt.savefig(os.path.join(plots_dir,n_fig_2),bbox_inches="tight")
 	plt.show()
@@ -872,10 +876,10 @@ def all_plots(pt,z,q,xi,coll='pp'):
 coll_type = 'pA'
 # p_t = 5 
 # pt_plots(fixed_y, z, q, xi)
-y_lim = (-6,6)
-# for p_t in p_T_dispo:
+# y_lim = (-6,6)
+for p_t in p_T_dispo:
 	# plot_splines(np.linspace(y_lim[0],y_lim[1],100), p_t, p_num_plot_list,p_num_color_list,n=1,coll=coll_type)
 	# plot_f_alpha(np.linspace(y_lim[0],y_lim[1],100), p_t, p_num_plot_list,p_num_color_list,n=2)
-	# all_plots(p_t, z, q, xi,coll=coll_type)
-plot_mains(p_T_dispo[0],z, q, xi,coll=coll_type)
+	all_plots(p_t, z, q, xi,coll=coll_type)
+# plot_mains(p_T_dispo[0],z, q, xi,coll=coll_type)
 # plot_sigma_spline(np.linspace(-6, 6,100),pt)

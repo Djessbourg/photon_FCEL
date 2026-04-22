@@ -18,6 +18,7 @@ data_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), 'data'))
 import csv
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.ticker import AutoMinorLocator, MultipleLocator
 from src import sigma as sig
 from src import Collision
 from scipy.integrate import quad
@@ -59,6 +60,15 @@ col_type = 'pp'
 N_limit = sig.N_limit
 err = 'mu,pdf'															# variables to compute error from 
 
+fig_size= (5,5)
+f_size= 17
+a=0
+b=0								
+
+def plot_usuals(n=1,s1=f_size,s2=f_size,loca = 'best'):
+	plt.legend(frameon= False, fontsize = s1,ncols=n,loc=loca )
+	plt.tick_params(labelsize=s2)
+      
 def integrated_yp_T(y_min,y_max,p_T_min,p_T_max,mu_factor=1.,mu_f_factor=1.):
 	sigma=quad(lambda p_T:quad(lambda y:pPb_cross_section.dsigma_tot_dydpt(y,2.*p_T/rs,num_cen,mu_factor=mu_factor,mu_f_factor=mu_f_factor,is_pp=Collision(col_type),switch = convention)[0],y_min,y_max,limit=N_limit)[0],p_T_min,p_T_max,limit=N_limit)[0]
 	return sigma
@@ -109,7 +119,7 @@ for row in data_rows:
 
 # pt dependant R_pA
 y=0
-err= 'q0,pdf' # there is barely no mu error in it 
+err= '' # there is barely no mu error in it 
 RpA_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), 'RpA_dir'))
 # f_name = proton+'_RpA_'+str(rs)+'GeV_Z'+str(Z)+'_A'+str(A)+'_y'+str(y)+'.txt'
 f_name = proton+'_True_RpA_'+str(rs)+'GeV_Z'+str(Z)+'_A'+str(A)+'_y'+str(y)+'.txt'
@@ -135,7 +145,7 @@ else:
 
 
 #correction of integration with the bin size in the first approximation
-Rpa ,Rpa_plus,Rpa_minus = bin_width*Rpa,bin_width*Rpa_plus,bin_width*Rpa_minus
+# Rpa ,Rpa_plus,Rpa_minus = bin_width*Rpa,bin_width*Rpa_plus,bin_width*Rpa_minus
 
 # Uncomment the following lines to create your own matrix to save (be aware not to transpose or nothing, unlike me)
 
@@ -183,28 +193,36 @@ Rpa ,Rpa_plus,Rpa_minus = bin_width*Rpa,bin_width*Rpa_plus,bin_width*Rpa_minus
 # P_T_min = np.subtract(P_T_Alice,P_T_min)
 # P_T_max = np.subtract(P_T_max,P_T_Alice)
 
-# ax = plt.subplot()
+fig, ax = plt.subplots(constrained_layout=True,figsize=fig_size)
+# ax.xaxis.ticklabel_format(useMathText=True)
+ax.xaxis.set_minor_locator(MultipleLocator(10))
+ax.yaxis.set_minor_locator(MultipleLocator(0.05))
+ax.yaxis.set_major_locator(MultipleLocator(0.2))
 # plt.fill_between(P_T,np.divide(sigma_min,bin_width),np.divide(sigma_max,bin_width),color = 'blue', alpha= 0.3 ,label=r'$\sigma_\mu$')
 # plt.plot(P_T,np.divide(sigma,bin_width),color='b',label=r'Python program (y integrated)')
 # plt.errorbar(P_T_Alice,sigma_bin,yerr=[sigma_bin-sigma_bin_min,sigma_bin_max-sigma_bin],xerr = [P_T_min,P_T_max],fmt='none',label = r'Python program (all integrated)')
-plt.plot(P_T,Rpa,label = r'Python program ')
+plt.plot(P_T,Rpa,label = r'Our $R_{\text{pA}}$')
 plt.fill_between(P_T,Rpa-Rpa_minus,Rpa+Rpa_plus,alpha=0.3,color='blue')
-plt.errorbar(pt_center,R_pA,yerr=total_err,xerr=[np.subtract(pt_center,pt_low),np.subtract(pt_high,pt_center)],fmt='.',label=r'Alice 8.16 TeV')
+plt.errorbar(pt_center,R_pA,yerr=total_err,xerr=[np.subtract(pt_center,pt_low),np.subtract(pt_high,pt_center)],fmt='.',label=r'Alice pPb 8.16 TeV')
 plt.axhline(y=1,color='grey',alpha=0.5)
 # ~ plt.plot(P_T,sigma_0,color = 'green',label =r'Python program for $y=0$')
 #plt.grid()
-plt.legend(frameon =False,fontsize=10)
-plt.xlabel(r'$p_\bot$ ($GeV$)')
+plot_usuals(loca='upper left')
+# plt.legend(frameon =False,fontsize=10,loc='upper left')
+plt.xlabel(r'$p_\bot$ GeV',fontsize=f_size)
 # ~ plt.ylim(bottom=0)
 # plt.xlim(5.,16.)
 # plt.ylim(0.95,1.1)
 # plt.yscale('log')
-plt.xscale('log')
-plt.ylabel(r'$d\sigma/dy$'+d[convention][0]+ r'('+d[convention][1]+r')')
-# ~ plt.text(0.1, 0.1, r'$p_\bot =$'+str(p_T) +r' $GeV$', horizontalalignment='center', verticalalignment='center',transform=ax.transAxes)
+# plt.xscale('log')
+# plt.ylabel(r'$d\sigma/dy$'+d[convention][0]+ r'('+d[convention][1]+r')')
+plt.ylabel(r'$R_{\text{pA}}$',fontsize=f_size)
+plt.text(0.9, 0.1, r'$|y| \leq $'+ str(y_range[1]), horizontalalignment='right', verticalalignment='center',transform=ax.transAxes,fontsize=f_size)
+plt.text(0.9, 0.2, r'$\sqrt{s} = $'+ str(rs/1000)+' TeV', horizontalalignment='right', verticalalignment='center',transform=ax.transAxes,fontsize=f_size)
+ax.set_aspect(1.0/ax.get_data_ratio(), adjustable='box')
 # ~ plt.text(0.1, 0.05, r'collision: '+col_type, horizontalalignment='center', verticalalignment='center',transform=ax.transAxes)
 plt.tight_layout()
-plt.savefig(os.path.join(plots_dir, 'sigma_'+col_type+'_Alice_'+str(rs)+'GeV.pdf'))
+plt.savefig(os.path.join(plots_dir, 'RpA_LHC_'+str(rs)+'GeV.pdf'))
 plt.show()
 plt.close()
 

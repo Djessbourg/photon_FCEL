@@ -19,7 +19,8 @@ plots_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'plots
 import matplotlib.pyplot as plt
 import lhapdf as lha
 import numpy as np 
-from scipy import (integrate,differentiate)
+from scipy import integrate
+from scipy.differentiate import derivative
 try :
 	from . import Probability as prob
 except ImportError:
@@ -75,7 +76,7 @@ def charge(particle_id):
 N_c = 3. 							  											# number of colors 
 C_F = (N_c**2 -1)/(2*N_c) 														# color factor  
 alpha = 1./137.																	# alpha EM
-conv_fact = pow(0.197,2)*pow(10,10)												# to convert Gev^-2 into barns
+conv_fact = pow(0.197,2)*pow(10,10)												# to convert Gev^-2 into pico barns
 pi = np.pi
 
 # Integration parameters
@@ -862,6 +863,8 @@ class Sigma:
 		- switch the convention of p_T integration (= 'dp_t' by default)'''
 		Integrand = lambda xi: self.qG(y,x_T,xi,num,mu_factor,mu_f_factor,n_f,is_pp,switch)
 		Ximin, Ximax = Xi_min(y,x_T),Xi_max(y,x_T)
+		# print(y)
+		# print(type(y))
 		sigma, err = integrate.quad(Integrand,Ximin,Ximax, limit = N_limit)
 		return (conv_fact*sigma, conv_fact*err)
 	
@@ -4425,6 +4428,30 @@ class Sigma:
 	
 	### Other functions ###
 
+	def ew_qg(self,y,x_T,num,mu_factor=1,mu_f_factor=1,n_f=3,is_pp=True, switch='dp_t'):
+		if not(type(y)==type(np.array([]))):
+			return self.dsigma_qG_dydpt(y,x_T,num,mu_factor,mu_f_factor,n_f,is_pp, switch=switch)[0]
+		else:
+			return np.array([self.ew_qg(i,x_T,num,mu_factor,mu_f_factor,n_f,is_pp, switch)for i in y])
+		
+	def ew_gq(self,y,x_T,num,mu_factor=1,mu_f_factor=1,iso='p',n_f=3,is_pp=True, switch='dp_t'):
+		if not(type(y)==type(np.array([]))):
+			return self.dsigma_Gq_dydpt(y,x_T,num,mu_factor,mu_f_factor,iso,n_f,is_pp, switch)[0]
+		else:
+			return np.array([self.ew_gq(i,x_T,num,mu_factor,mu_f_factor,iso,n_f,is_pp, switch)for i in y])
+		
+	def ew_qqbar(self,y,x_T,num,mu_factor=1,mu_f_factor=1,iso='p',n_f=3,is_pp=True, switch='dp_t'):
+		if not(type(y)==type(np.array([]))):
+			return self.dsigma_qqbar_dydpt(y,x_T,num,mu_factor,mu_f_factor,iso,n_f,is_pp, switch)[0]
+		else:
+			return np.array([self.ew_qqbar(i,x_T,num,mu_factor,mu_f_factor,iso,n_f,is_pp, switch)for i in y])
+		
+	def ew_qbarq(self,y,x_T,num,mu_factor=1,mu_f_factor=1,iso='p',n_f=3,is_pp=True, switch='dp_t'):
+		if not(type(y)==type(np.array([]))):
+			return self.dsigma_qbarq_dydpt(y,x_T,num,mu_factor,mu_f_factor,iso,n_f,is_pp, switch)[0]
+		else:
+			return np.array([self.ew_qbarq(i,x_T,num,mu_factor,mu_f_factor,iso,n_f,is_pp, switch)for i in y])
+
 	def Rpp_Taylor_FCELG_dy(self,x_T,Xi_tilde,num,q0,mu_factor=1,mu_f_factor=1,iso='p',n_f=3,switch ='dp_t',eps = 1e-15,var_int='nu',FCELG = False):
 		'''Return the ratio (for real photons) of the Taylor approximation at the first order 
 		of the shifted sigma_pp in rapidity (or pn if iso = 'n') 
@@ -4453,30 +4480,44 @@ class Sigma:
 		# Value of the 0th order for the RpA
 		R = 1 					
 		# Cross section of each process as a function of y 
-		qg = lambda y : self.dsigma_qG_dydpt(y,x_T,num,mu_factor=mu_factor,mu_f_factor=mu_f_factor,n_f=n_f,is_pp=True, switch=switch)[0]
-		gq = lambda y : self.dsigma_Gq_dydpt(y,x_T,num,mu_factor=mu_factor,mu_f_factor=mu_f_factor,iso=iso,n_f=n_f,is_pp=True, switch=switch)[0]
-		qqbar = lambda y : self.dsigma_qqbar_dydpt(y,x_T,num,mu_factor=mu_factor,mu_f_factor=mu_f_factor,iso=iso,n_f=n_f,is_pp=True, switch=switch)[0]
-		qbarq = lambda y : self.dsigma_qbarq_dydpt(y,x_T,num,mu_factor=mu_factor,mu_f_factor=mu_f_factor,iso=iso,n_f=n_f,is_pp=True, switch=switch)[0]
-		
-		L_qg = np.array([qg(y)for y in Y])
-		L_gq = np.array([gq(y) for y in Y])
-		L_qqbar = np.array([qqbar(y) for y in Y])
-		L_qbarq = np.array([qbarq(y) for y in Y])
+		# qg = lambda Ly : np.array([self.dsigma_qG_dydpt(y,x_T,num,mu_factor=mu_factor,mu_f_factor=mu_f_factor,n_f=n_f,is_pp=True, switch=switch)[0] for y in Ly])
+		# gq = lambda Ly : np.array([self.dsigma_Gq_dydpt(y,x_T,num,mu_factor=mu_factor,mu_f_factor=mu_f_factor,iso=iso,n_f=n_f,is_pp=True, switch=switch)[0] for y in Ly])
+		# qqbar = lambda Ly : np.array([self.dsigma_qqbar_dydpt(y,x_T,num,mu_factor=mu_factor,mu_f_factor=mu_f_factor,iso=iso,n_f=n_f,is_pp=True, switch=switch)[0] for y in Ly])
+		# qbarq = lambda Ly : np.array([self.dsigma_qbarq_dydpt(y,x_T,num,mu_factor=mu_factor,mu_f_factor=mu_f_factor,iso=iso,n_f=n_f,is_pp=True, switch=switch)[0] for y in Ly])
+		ew_qg = lambda y: self.ew_qg(y,x_T,num)
+		ew_gq = lambda y: self.ew_gq(y,x_T,num)
+		ew_qqbar = lambda y: self.ew_qqbar(y,x_T,num)
+		ew_qbarq = lambda y: self.ew_qbarq(y,x_T,num)
+		# L_qg = np.array([qg(y)for y in Y])
+		# L_gq = np.array([gq(y) for y in Y])
+		# L_qqbar = np.array([qqbar(y) for y in Y])
+		# L_qbarq = np.array([qbarq(y) for y in Y])
+
+		L_qg = ew_qg(Y)
+		L_gq = ew_gq(Y)
+		L_qqbar = ew_qqbar(Y)
+		L_qbarq = ew_qbarq(Y)
 
 		L_FCEG = L_qg
 		L_FCEL = L_gq+L_qqbar+L_qbarq
 		L_tot = L_qg+L_gq+L_qqbar+L_qbarq
 		
 		# Derivatives according to y 
-		dqg = derivative_array(L_qg,Y)
-		dgq = derivative_array(L_gq,Y)
-		dqqbar = derivative_array(L_qqbar,Y)
-		dqbarq = derivative_array(L_qbarq,Y)
+		# dqg = derivative_array(L_qg,Y)
+		# dgq = derivative_array(L_gq,Y)
+		# dqqbar = derivative_array(L_qqbar,Y)
+		# dqbarq = derivative_array(L_qbarq,Y)
+
+		# Scipy derivatives
+		dqg = derivative(ew_qg,Y)
+		dgq = derivative(ew_gq,Y)
+		dqqbar = derivative(ew_qqbar,Y)
+		dqbarq = derivative(ew_qbarq,Y)
 		# Each term for the final result
-		Rqg = dqg-L_qg
-		Rgq = dgq - L_gq
-		Rqqbar = dqqbar - L_qqbar
-		Rqbarq = dqbarq - L_qbarq
+		Rqg = dqg.df - L_qg
+		Rgq = dgq.df - L_gq
+		Rqqbar = dqqbar.df - L_qqbar
+		Rqbarq = dqbarq.df - L_qbarq
 		# FCEL and FCEG part
 		FCEL = x_mean_FCEL*(Rgq+Rqqbar+Rqbarq)
 		FCEG = x_mean_FCEG*Rqg
