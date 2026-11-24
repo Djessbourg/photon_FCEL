@@ -4298,7 +4298,7 @@ class Sigma:
 				print('y = '+str(y)+'| '+str(j+1)+'/'+str(N_y))
 				y_pdf_val =[Ucen[j]]
 				for i in range(1,p_set.size):
-					R_pdf = self.RpA_wo_iso_dydpt_M(y,x_T,M,i,q0_cen,n_f=n_f,switch =switch,eps = eps,var_int=var_int)
+					R_pdf = self.RpA_wo_iso_dydpt_M(y,M,x_T,i,q0_cen,n_f=n_f,switch =switch,eps = eps,var_int=var_int)
 					y_pdf_val.append(R_pdf)
 				unc_pdf = p_set.uncertainty(y_pdf_val)
 				Uplus_pdf.append(unc_pdf.errplus); Uminus_pdf.append(unc_pdf.errminus)
